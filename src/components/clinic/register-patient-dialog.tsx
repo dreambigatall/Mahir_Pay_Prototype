@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertCircle, CalendarClock, Search, Syringe, UserPlus } from "lucide-react";
+import { AlertCircle, CalendarClock, Plus, Search, Syringe, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { StartCourseDialog } from "@/components/clinic/start-course-dialog";
@@ -68,8 +68,8 @@ export function RegisterPatientDialog() {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="gap-1.5 shadow-sm">
-          <UserPlus className="size-4" />
+        <Button className="gap-2 shadow-sm mr-2 mt-1 px-5">
+          <Plus className="size-4" />
           Register patient
         </Button>
       </DialogTrigger>
