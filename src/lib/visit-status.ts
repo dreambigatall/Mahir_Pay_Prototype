@@ -73,5 +73,7 @@ export function labBadge(status: LabStatus): { role: StatusRole; label: string }
       return { role: "clinical", label: "In progress" };
     case "result-ready":
       return { role: "success", label: "Result ready" };
+    case "reviewed":
+      return { role: "success", label: "Reviewed" };
   }
 }

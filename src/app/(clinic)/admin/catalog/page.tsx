@@ -43,6 +43,7 @@ const typeBadges: Record<
   drug: { label: "Medication", role: "warning", icon: Pill },
   consultation: { label: "Consultation", role: "info", icon: Stethoscope },
   procedure: { label: "Injection / vaccine", role: "clinical", icon: Syringe },
+  radiology: { label: "Radiology", role: "clinical", icon: FlaskConical },
 };
 
 export default function AdminCatalogPage() {

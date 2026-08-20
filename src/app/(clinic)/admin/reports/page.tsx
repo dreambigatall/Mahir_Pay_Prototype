@@ -40,6 +40,7 @@ export default function AdminReportsPage() {
       lab_test: 0,
       drug: 0,
       procedure: 0,
+      radiology: 0,
     };
 
     let totalCollected = 0;
@@ -64,13 +65,14 @@ export default function AdminReportsPage() {
     }
 
     const totalRevenue =
-      byType.consultation + byType.lab_test + byType.drug + byType.procedure;
+      byType.consultation + byType.lab_test + byType.drug + byType.procedure + byType.radiology;
 
     const shares = {
       consultation: totalRevenue > 0 ? Math.round((byType.consultation / totalRevenue) * 100) : 0,
       lab_test: totalRevenue > 0 ? Math.round((byType.lab_test / totalRevenue) * 100) : 0,
       drug: totalRevenue > 0 ? Math.round((byType.drug / totalRevenue) * 100) : 0,
       procedure: totalRevenue > 0 ? Math.round((byType.procedure / totalRevenue) * 100) : 0,
+      radiology: totalRevenue > 0 ? Math.round((byType.radiology / totalRevenue) * 100) : 0,
     };
 
     return {
