@@ -46,10 +46,10 @@ export function QueueBoard({
       {showLeft && (
         <button
           onClick={() => scroll("left")}
-          className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/90 shadow-lg border border-border p-3 text-foreground hover:bg-surface-2 transition-all backdrop-blur-sm"
+          className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/90 shadow-lg border border-border p-3 hover:bg-surface-2 transition-all backdrop-blur-sm"
           aria-label="Scroll left"
         >
-          <ChevronLeft className="size-6" />
+          <ChevronLeft className="size-6 text-primary" />
         </button>
       )}
 
@@ -96,10 +96,10 @@ export function QueueBoard({
       {showRight && (
         <button
           onClick={() => scroll("right")}
-          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/90 shadow-lg border border-border p-3 text-foreground hover:bg-surface-2 transition-all backdrop-blur-sm"
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/90 shadow-lg border border-border p-3 hover:bg-surface-2 transition-all backdrop-blur-sm"
           aria-label="Scroll right"
         >
-          <ChevronRight className="size-6" />
+          <ChevronRight className="size-6 text-primary" />
         </button>
       )}
     </div>
