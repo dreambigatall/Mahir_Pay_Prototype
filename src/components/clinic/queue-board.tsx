@@ -25,17 +25,17 @@ export function QueueBoard({
         return (
           <div
             key={column.id}
-            className="w-[280px] shrink-0 rounded-xl bg-surface-1 p-3"
+            className="w-[350px] shrink-0 rounded-xl bg-surface-1 p-4"
           >
-            <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
-              <p className="text-[13px] font-medium text-foreground">{column.title}</p>
-              <span className="font-mono text-[12px] font-medium text-fg-muted">
+            <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+              <p className="text-[16px] font-bold text-foreground">{column.title}</p>
+              <span className="font-mono text-[14px] font-medium text-fg-muted">
                 {cards.length}
               </span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {cards.length === 0 ? (
-                <p className="py-8 text-center text-[12px] text-fg-muted">
+                <p className="py-10 text-center text-[14px] text-fg-muted">
                   No patients in this stage
                 </p>
               ) : (
@@ -67,30 +67,30 @@ function QueueCard({ visit, href }: { visit: Visit; href: string }) {
   return (
     <Link
       href={href}
-      className="block rounded-xl border border-border bg-surface-2 p-3 transition-colors hover:border-border-strong"
+      className="block rounded-xl border border-border bg-surface-2 p-4 transition-colors hover:border-border-strong mb-2"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <GripVertical className="size-3.5 text-primary shrink-0" />
-          <p className="text-[14px] font-medium text-primary truncate">{patient.name}</p>
+        <div className="flex items-center gap-2 min-w-0">
+          <GripVertical className="size-5 text-primary shrink-0" />
+          <p className="text-[16px] font-bold text-primary truncate">{patient.name}</p>
         </div>
-        <span className={`mt-1 size-2 shrink-0 rounded-full ${visitDot(visit.status)}`} />
+        <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${visitDot(visit.status)}`} />
       </div>
 
-      <p className="mt-1 font-mono text-[11px] text-fg-muted">
+      <p className="mt-1.5 font-mono text-[13px] text-fg-muted">
         {patient.patientId} · {ageFromDob(patient.dateOfBirth)}{patient.gender}
       </p>
-      <p className="mt-2 text-[13px] text-fg-secondary truncate">
+      <p className="mt-2 text-[14px] text-fg-secondary truncate">
         {doctor?.name} {doctor?.room ? `· ${doctor.room}` : ""}
       </p>
-      <p className="text-[13px] text-fg-muted truncate">{visit.reason}</p>
+      <p className="text-[14px] text-fg-muted truncate">{visit.reason}</p>
       {visit.kind === "procedure" ? (
-        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-clinical-text">
+        <p className="mt-1.5 text-[12px] font-semibold uppercase tracking-wide text-clinical-text">
           Injection / vaccine
         </p>
       ) : null}
 
-      <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[11px]">
+      <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between text-[13px]">
         {visit.status !== "billed" ? (
           <span className={overSla ? "font-semibold text-danger-text" : "text-fg-muted font-mono"}>
             Waiting {visit.waitMinutes}m
@@ -99,7 +99,7 @@ function QueueCard({ visit, href }: { visit: Visit; href: string }) {
           <span className="text-success-text font-medium">Visit closed</span>
         )}
 
-        <span className="font-mono text-fg-muted text-[10px] uppercase">
+        <span className="font-mono text-fg-muted text-[12px] uppercase">
           {visit.id.slice(-6)}
         </span>
       </div>
