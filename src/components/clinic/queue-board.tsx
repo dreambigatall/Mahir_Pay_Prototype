@@ -17,7 +17,7 @@ export function QueueBoard({
   hrefFor: (visit: Visit) => string;
 }) {
   return (
-    <div className="flex gap-3 overflow-x-auto pb-2">
+    <div className="flex gap-1.5 overflow-x-auto pb-2">
       {QUEUE_COLUMNS.map((column) => {
         const cards = visits.filter((visit) =>
           column.statuses.includes(visit.status),
@@ -25,17 +25,17 @@ export function QueueBoard({
         return (
           <div
             key={column.id}
-            className="w-[350px] shrink-0 rounded-xl bg-surface-1 p-4"
+            className="w-[400px] shrink-0 rounded-xl bg-surface-1 p-5"
           >
-            <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
-              <p className="text-[16px] font-bold text-foreground">{column.title}</p>
-              <span className="font-mono text-[14px] font-medium text-fg-muted">
+            <div className="mb-5 flex items-center justify-between border-b border-border pb-3.5">
+              <p className="text-[18px] font-bold text-foreground">{column.title}</p>
+              <span className="font-mono text-[16px] font-medium text-fg-muted">
                 {cards.length}
               </span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {cards.length === 0 ? (
-                <p className="py-10 text-center text-[14px] text-fg-muted">
+                <p className="py-12 text-center text-[16px] text-fg-muted">
                   No patients in this stage
                 </p>
               ) : (
@@ -67,30 +67,30 @@ function QueueCard({ visit, href }: { visit: Visit; href: string }) {
   return (
     <Link
       href={href}
-      className="block rounded-xl border border-border bg-surface-2 p-4 transition-colors hover:border-border-strong mb-2"
+      className="block rounded-xl border border-border bg-surface-2 p-5 transition-colors hover:border-border-strong mb-3"
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <GripVertical className="size-5 text-primary shrink-0" />
-          <p className="text-[16px] font-bold text-primary truncate">{patient.name}</p>
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <GripVertical className="size-6 text-primary shrink-0" />
+          <p className="text-[18px] font-bold text-primary truncate">{patient.name}</p>
         </div>
-        <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${visitDot(visit.status)}`} />
+        <span className={`mt-2 size-3 shrink-0 rounded-full ${visitDot(visit.status)}`} />
       </div>
 
-      <p className="mt-1.5 font-mono text-[13px] text-fg-muted">
+      <p className="mt-2 font-mono text-[14px] text-fg-muted">
         {patient.patientId} · {ageFromDob(patient.dateOfBirth)}{patient.gender}
       </p>
-      <p className="mt-2 text-[14px] text-fg-secondary truncate">
+      <p className="mt-2.5 text-[15px] text-fg-secondary truncate">
         {doctor?.name} {doctor?.room ? `· ${doctor.room}` : ""}
       </p>
-      <p className="text-[14px] text-fg-muted truncate">{visit.reason}</p>
+      <p className="text-[15px] text-fg-muted truncate">{visit.reason}</p>
       {visit.kind === "procedure" ? (
-        <p className="mt-1.5 text-[12px] font-semibold uppercase tracking-wide text-clinical-text">
+        <p className="mt-2 text-[13px] font-semibold uppercase tracking-wide text-clinical-text">
           Injection / vaccine
         </p>
       ) : null}
 
-      <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between text-[13px]">
+      <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between text-[14px]">
         {visit.status !== "billed" ? (
           <span className={overSla ? "font-semibold text-danger-text" : "text-fg-muted font-mono"}>
             Waiting {visit.waitMinutes}m
@@ -99,7 +99,7 @@ function QueueCard({ visit, href }: { visit: Visit; href: string }) {
           <span className="text-success-text font-medium">Visit closed</span>
         )}
 
-        <span className="font-mono text-fg-muted text-[12px] uppercase">
+        <span className="font-mono text-fg-muted text-[13px] uppercase">
           {visit.id.slice(-6)}
         </span>
       </div>
