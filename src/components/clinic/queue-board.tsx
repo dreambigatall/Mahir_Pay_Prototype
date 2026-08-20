@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { GripVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, GripVertical } from "lucide-react";
 
 import { useClinic } from "@/lib/clinic-store";
 import { ageFromDob } from "@/lib/format";
@@ -16,41 +17,91 @@ export function QueueBoard({
   visits: Visit[];
   hrefFor: (visit: Visit) => string;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+
+  const checkScroll = () => {
+    if (!scrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    setShowLeft(scrollLeft > 0);
+    setShowRight(scrollLeft < scrollWidth - clientWidth - 2);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [visits]);
+
+  const scroll = (dir: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = 406; // width + gap
+      scrollRef.current.scrollBy({ left: dir === "left" ? -scrollAmount : scrollAmount, behavior: "smooth" });
+    }
+  };
+
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-2">
-      {QUEUE_COLUMNS.map((column) => {
-        const cards = visits.filter((visit) =>
-          column.statuses.includes(visit.status),
-        );
-        return (
-          <div
-            key={column.id}
-            className="w-[400px] shrink-0 rounded-xl bg-surface-1 p-5"
-          >
-            <div className="mb-5 flex items-center justify-between border-b border-border pb-3.5">
-              <p className="text-[18px] font-bold text-foreground">{column.title}</p>
-              <span className="font-mono text-[16px] font-medium text-fg-muted">
-                {cards.length}
-              </span>
+    <div className="relative group">
+      {showLeft && (
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/90 shadow-lg border border-border p-3 text-foreground hover:bg-surface-2 transition-all backdrop-blur-sm"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft className="size-6" />
+        </button>
+      )}
+
+      <div 
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="flex gap-1.5 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      >
+        {QUEUE_COLUMNS.map((column) => {
+          const cards = visits.filter((visit) =>
+            column.statuses.includes(visit.status),
+          );
+          return (
+            <div
+              key={column.id}
+              className="w-[400px] shrink-0 rounded-xl bg-surface-1 p-5"
+            >
+              <div className="mb-5 flex items-center justify-between border-b border-border pb-3.5">
+                <p className="text-[18px] font-bold text-foreground">{column.title}</p>
+                <span className="font-mono text-[16px] font-medium text-fg-muted">
+                  {cards.length}
+                </span>
+              </div>
+              <div className="space-y-4">
+                {cards.length === 0 ? (
+                  <p className="py-12 text-center text-[16px] text-fg-muted">
+                    No patients in this stage
+                  </p>
+                ) : (
+                  cards.map((visit) => (
+                    <QueueCard
+                      key={visit.id}
+                      visit={visit}
+                      href={hrefFor(visit)}
+                    />
+                  ))
+                )}
+              </div>
             </div>
-            <div className="space-y-4">
-              {cards.length === 0 ? (
-                <p className="py-12 text-center text-[16px] text-fg-muted">
-                  No patients in this stage
-                </p>
-              ) : (
-                cards.map((visit) => (
-                  <QueueCard
-                    key={visit.id}
-                    visit={visit}
-                    href={hrefFor(visit)}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      {showRight && (
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/90 shadow-lg border border-border p-3 text-foreground hover:bg-surface-2 transition-all backdrop-blur-sm"
+          aria-label="Scroll right"
+        >
+          <ChevronRight className="size-6" />
+        </button>
+      )}
     </div>
   );
 }
