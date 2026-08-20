@@ -10,14 +10,18 @@ export type VisitStatus =
   | "billed"
   | "cancelled";
 
-export type LabStatus = "requested" | "in-progress" | "result-ready";
+export type LabStatus = "requested" | "in-progress" | "result-ready" | "reviewed";
 export type LabUrgency = "routine" | "urgent";
 export type PaymentStatus = "unpaid" | "partial" | "paid" | "pending-credit";
+<<<<<<< HEAD
 export type CatalogType = "consultation" | "lab_test" | "drug" | "procedure";
 export type VisitKind = "consultation" | "procedure";
 export type CourseStatus = "active" | "completed" | "cancelled";
 export type DoseStatus = "scheduled" | "checked-in" | "given" | "missed";
 export type CourseBillingMode = "per-dose" | "package";
+=======
+export type CatalogType = "consultation" | "lab_test" | "radiology" | "drug";
+>>>>>>> 236a1b0 (¨Color_Update¨)
 
 export type StaffUser = {
   id: string;
@@ -46,6 +50,7 @@ export type Visit = {
   receptionistId: string;
   status: VisitStatus;
   reason: string;
+  diagnosis?: string;
   waitMinutes: number;
   createdAt: string;
   kind?: VisitKind;
@@ -92,6 +97,7 @@ export type CatalogItem = {
   active: boolean;
 };
 
+<<<<<<< HEAD
 export type TreatmentCourse = {
   id: string;
   patientId: string;
@@ -116,10 +122,14 @@ export type CourseDose = {
   givenAt?: string;
   givenBy?: string;
 };
+=======
+export type PrescriptionStatus = "awaiting-payment" | "payment-approved" | "dispensed";
+>>>>>>> 236a1b0 (¨Color_Update¨)
 
 export type Prescription = {
   id: string;
   visitId: string;
+<<<<<<< HEAD
   drugId: string;
   drugName: string;
   dosage: string;
@@ -129,3 +139,33 @@ export type Prescription = {
   createdAt: string;
 };
 
+=======
+  doctorId: string;
+  catalogItemId: string;
+  drugName: string;
+  instructions: string;
+  status: PrescriptionStatus;
+  createdAt: string;
+};
+
+export type Appointment = {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  date: string;
+  reason: string;
+  createdAt: string;
+};
+
+export type Referral = {
+  id: string;
+  visitId: string;
+  patientId: string;
+  fromDoctorId: string;
+  toDepartment?: string;
+  toBranch?: string;
+  diagnosis: string;
+  notes: string;
+  createdAt: string;
+};
+>>>>>>> 236a1b0 (¨Color_Update¨)

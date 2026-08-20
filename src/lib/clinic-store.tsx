@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
+<<<<<<< HEAD
 import { dosesForCourse } from "@/lib/courses";
 import { addDaysISO, CLINIC_TODAY } from "@/lib/format";
 import {
@@ -35,6 +36,26 @@ import type {
   TreatmentCourse,
   Visit,
   VisitStatus,
+=======
+import { 
+  catalog as seedCatalog, 
+  labRequests as seedLabRequests, 
+  visits as seedVisits,
+  prescriptions as seedPrescriptions,
+  appointments as seedAppointments,
+  referrals as seedReferrals,
+} from "@/lib/mock-data";
+import type { 
+  CatalogItem, 
+  CatalogType, 
+  LabRequest, 
+  LabResultFlag, 
+  LabUrgency, 
+  Visit,
+  Prescription,
+  Appointment,
+  Referral,
+>>>>>>> 236a1b0 (¨Color_Update¨)
 } from "@/lib/types";
 
 const STORAGE_KEY = "ridgeway-cms-clinic-data-v4";
@@ -44,10 +65,15 @@ type ClinicState = {
   labRequests: LabRequest[];
   visits: Visit[];
   prescriptions: Prescription[];
+<<<<<<< HEAD
   patients: Patient[];
   invoices: Invoice[];
   courses: TreatmentCourse[];
   doses: CourseDose[];
+=======
+  appointments: Appointment[];
+  referrals: Referral[];
+>>>>>>> 236a1b0 (¨Color_Update¨)
 };
 
 type OrderLabsInput = {
@@ -90,8 +116,13 @@ type StartCourseInput = {
 type ClinicContextValue = ClinicState & {
   ready: boolean;
   labTests: CatalogItem[];
+<<<<<<< HEAD
   drugs: CatalogItem[];
   procedures: CatalogItem[];
+=======
+  radiologyTests: CatalogItem[];
+  drugs: CatalogItem[];
+>>>>>>> 236a1b0 (¨Color_Update¨)
   addLabTest: (input: { name: string; price: number }) => void;
   setLabTestActive: (id: string, active: boolean) => void;
   addCatalogItem: (input: { type: CatalogType; name: string; price: number }) => void;
@@ -114,6 +145,7 @@ type ClinicContextValue = ClinicState & {
       }
     >,
   ) => void;
+<<<<<<< HEAD
   updateVisitStatus: (visitId: string, status: VisitStatus) => void;
   completeDoctorConsultation: (visitId: string) => void;
   addPrescription: (prescription: Omit<Prescription, "id" | "createdAt">) => void;
@@ -130,6 +162,13 @@ type ClinicContextValue = ClinicState & {
   markDoseMissed: (doseId: string) => void;
   collectPayment: (visitId: string, paymentMethod?: string) => void;
   getInvoiceByVisit: (visitId: string) => Invoice | undefined;
+=======
+  prescribeMedications: (input: { visitId: string; doctorId: string; prescriptions: { catalogItemId: string; instructions: string }[] }) => void;
+  scheduleAppointment: (input: Omit<Appointment, "id" | "createdAt">) => void;
+  referPatient: (input: Omit<Referral, "id" | "createdAt">) => void;
+  reviewLabResult: (requestId: string, notes: string) => void;
+  updateVisitDiagnosis: (visitId: string, diagnosis: string) => void;
+>>>>>>> 236a1b0 (¨Color_Update¨)
 };
 
 const ClinicContext = createContext<ClinicContextValue | null>(null);
@@ -138,7 +177,7 @@ function uniquePendingLabs(requests: LabRequest[]) {
   const pending = new Map<string, LabRequest>();
   const completed: LabRequest[] = [];
   for (const request of requests) {
-    if (request.status === "result-ready") {
+    if (request.status === "result-ready" || request.status === "reviewed") {
       completed.push(request);
       continue;
     }
@@ -306,11 +345,17 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
     catalog: seedCatalog,
     labRequests: seedLabRequests,
     visits: seedVisits,
+<<<<<<< HEAD
     prescriptions: [],
     patients: seedPatients,
     invoices: seedInvoices,
     courses: seedCourses,
     doses: seedCourseDoses,
+=======
+    prescriptions: seedPrescriptions,
+    appointments: seedAppointments,
+    referrals: seedReferrals,
+>>>>>>> 236a1b0 (¨Color_Update¨)
   });
   const [ready, setReady] = useState(false);
 
@@ -323,11 +368,17 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           catalog: mergeCatalog(parsed.catalog),
           labRequests: parsed.labRequests?.length ? parsed.labRequests : seedLabRequests,
           visits: parsed.visits?.length ? parsed.visits : seedVisits,
+<<<<<<< HEAD
           prescriptions: parsed.prescriptions ?? [],
           patients: parsed.patients?.length ? parsed.patients : seedPatients,
           invoices: parsed.invoices?.length ? parsed.invoices : seedInvoices,
           courses: parsed.courses?.length ? parsed.courses : seedCourses,
           doses: parsed.doses?.length ? parsed.doses : seedCourseDoses,
+=======
+          prescriptions: parsed.prescriptions?.length ? parsed.prescriptions : seedPrescriptions,
+          appointments: parsed.appointments?.length ? parsed.appointments : seedAppointments,
+          referrals: parsed.referrals?.length ? parsed.referrals : seedReferrals,
+>>>>>>> 236a1b0 (¨Color_Update¨)
         });
       }
     } catch {
@@ -348,6 +399,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name));
 
+<<<<<<< HEAD
     const drugs = state.catalog
       .filter((item) => item.type === "drug" && item.active)
       .slice()
@@ -369,13 +421,32 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       return buildConsultationInvoice(state, visit);
     };
 
+=======
+    const radiologyTests = state.catalog
+      .filter((item) => item.type === "radiology")
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const drugs = state.catalog
+      .filter((item) => item.type === "drug")
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+>>>>>>> 236a1b0 (¨Color_Update¨)
     return {
       ...state,
       ready,
       labTests,
+<<<<<<< HEAD
       drugs,
       procedures,
       addCatalogItem: ({ type, name, price }) => {
+=======
+      radiologyTests,
+      drugs,
+      addCatalogItem: ({ type, name, price }) => {
+        const prefix = type === "lab_test" ? "lab" : type === "drug" ? "drug" : type === "radiology" ? "rad" : "svc";
+>>>>>>> 236a1b0 (¨Color_Update¨)
         const item: CatalogItem = {
           id: `${catalogPrefix(type)}-${Date.now()}`,
           type,
@@ -430,7 +501,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           state.labRequests
             .filter(
               (request) =>
-                request.visitId === visitId && request.status !== "result-ready",
+                request.visitId === visitId && request.status !== "result-ready" && request.status !== "reviewed",
             )
             .map((request) => request.catalogItemId),
         );
@@ -438,7 +509,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
         for (const catalogItemId of catalogItemIds) {
           if (pendingIds.has(catalogItemId)) continue;
           const test = state.catalog.find((item) => item.id === catalogItemId);
-          if (!test || !test.active || test.type !== "lab_test") continue;
+          if (!test || !test.active || (test.type !== "lab_test" && test.type !== "radiology")) continue;
           created.push({
             id: `lab-${visitId}-${catalogItemId}-${Date.now()}`,
             visitId,
@@ -497,7 +568,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           });
           const visitDone = labRequests
             .filter((request) => request.visitId === visitId)
-            .every((request) => request.status === "result-ready");
+            .every((request) => request.status === "result-ready" || request.status === "reviewed");
           return {
             ...current,
             labRequests,
@@ -509,6 +580,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           };
         });
       },
+<<<<<<< HEAD
       updateVisitStatus: (visitId, status) => {
         setState((current) => ({
           ...current,
@@ -850,6 +922,68 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           };
         });
       },
+=======
+      prescribeMedications: ({ visitId, doctorId, prescriptions }) => {
+        const created: Prescription[] = [];
+        for (const req of prescriptions) {
+          const test = state.catalog.find((item) => item.id === req.catalogItemId);
+          if (!test || !test.active || test.type !== "drug") continue;
+          created.push({
+            id: `rx-${visitId}-${test.id}-${Date.now()}`,
+            visitId,
+            doctorId,
+            catalogItemId: test.id,
+            drugName: test.name,
+            instructions: req.instructions.trim(),
+            status: "awaiting-payment",
+            createdAt: new Date().toISOString(),
+          });
+        }
+        if (created.length > 0) {
+          setState((current) => ({
+            ...current,
+            prescriptions: [...created, ...current.prescriptions],
+            visits: current.visits.map((visit) =>
+              visit.id === visitId
+                ? { ...visit, status: "medication-prescribed" }
+                : visit,
+            ),
+          }));
+        }
+      },
+      scheduleAppointment: (input) => {
+        const item: Appointment = {
+          ...input,
+          id: `apt-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+        };
+        setState((current) => ({ ...current, appointments: [item, ...current.appointments] }));
+      },
+      referPatient: (input) => {
+        const item: Referral = {
+          ...input,
+          id: `ref-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+        };
+        setState((current) => ({ ...current, referrals: [item, ...current.referrals] }));
+      },
+      reviewLabResult: (requestId, notes) => {
+        setState((current) => ({
+          ...current,
+          labRequests: current.labRequests.map((req) => 
+            req.id === requestId ? { ...req, status: "reviewed", resultNotes: req.resultNotes ? `${req.resultNotes}\nDoctor Note: ${notes}` : notes } : req
+          )
+        }));
+      },
+      updateVisitDiagnosis: (visitId, diagnosis) => {
+        setState((current) => ({
+          ...current,
+          visits: current.visits.map((visit) => 
+            visit.id === visitId ? { ...visit, diagnosis } : visit
+          )
+        }));
+      },
+>>>>>>> 236a1b0 (¨Color_Update¨)
     };
   }, [ready, state]);
 

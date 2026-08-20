@@ -176,7 +176,7 @@ function Principles() {
     },
     {
       title: "One primary action",
-      body: "Each screen has one near-black primary button. Everything else is secondary or ghost.",
+      body: "Each screen has one purple primary button. Everything else is secondary or ghost.",
     },
     {
       title: "Compact density",
@@ -236,7 +236,7 @@ function Color() {
       <h3 className="text-[15px] font-medium">Base neutrals</h3>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Swatch name="Background" token="--background" className="bg-background" hex="#FFFFFF" />
-        <Swatch name="Surface 1" token="--surface-1" className="bg-surface-1" hex="#F7F7F5" />
+        <Swatch name="Surface 1" token="--surface-1" className="bg-surface-1" hex="#FFFFFF" />
         <Swatch name="Surface 2" token="--surface-2" className="bg-surface-2" hex="#FFFFFF" />
         <Swatch name="Border" token="--border" className="bg-border" hex="#E5E4DF" />
         <Swatch name="Border strong" token="--border-strong" className="bg-border-strong" hex="#D3D1C7" />
@@ -306,7 +306,7 @@ function Typography() {
     <Section
       id="typography"
       title="Typography"
-      description="Inter for UI. JetBrains Mono for patient IDs, invoice numbers, and lab codes. Weights: 400 and 500/600 only."
+      description="Public Sans for UI. JetBrains Mono for patient IDs, invoice numbers, and lab codes. Weights: 400 and 500/600 only."
     >
       <div className="space-y-4 rounded-xl border border-border bg-surface-2 p-5">
         <TypeRow token="text-title" spec="24 / 600 / 1.3" className="text-[24px] leading-[1.3] font-semibold">
@@ -437,7 +437,7 @@ function Buttons() {
         </Button>
       </div>
       <p className="text-[13px] text-fg-muted">
-        Primary is near-black, not blue. Blue is reserved for active clinical state and links.
+        Primary is purple, not blue. Blue is reserved for active clinical state and links.
       </p>
     </Section>
   );
@@ -652,13 +652,13 @@ function Kanban() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5">
-                      <GripVertical className="size-3.5 text-fg-muted" />
-                      <p className="text-[14px] font-medium">{card.name}</p>
+                      <GripVertical className="size-3.5 text-primary" />
+                      <p className="text-[14px] font-medium text-primary">{card.name}</p>
                     </div>
                     <span className={`mt-1 size-2 shrink-0 rounded-full ${card.dot}`} />
                   </div>
                   <p className="mt-1 font-mono text-[12px] text-fg-muted">{card.meta}</p>
-                  <p className="mt-2 text-[13px]">{card.detail}</p>
+                  <p className="mt-2 text-[13px] text-fg-secondary">{card.detail}</p>
                   <p
                     className={`text-[12px] ${
                       card.waitTone === "warning" ? "text-warning-text" : "text-fg-muted"

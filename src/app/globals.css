@@ -5,9 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-inter), "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-public-sans), "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
-  --font-heading: var(--font-inter), "Helvetica Neue", Arial, sans-serif;
+  --font-heading: var(--font-public-sans), "Helvetica Neue", Arial, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -85,7 +85,7 @@
   --radius: 8px;
 
   --background: #ffffff;
-  --surface-1: #f7f7f5;
+  --surface-1: #ffffff;
   --surface-2: #ffffff;
   --foreground: #1a1a18;
   --text-secondary: #5f5e5a;
@@ -98,17 +98,17 @@
   --card-foreground: #1a1a18;
   --popover: #ffffff;
   --popover-foreground: #1a1a18;
-  --primary: #1a1a18;
+  --primary: #7776bc;
   --primary-foreground: #ffffff;
-  --secondary: #f7f7f5;
+  --secondary: #cdc7e5;
   --secondary-foreground: #1a1a18;
-  --muted: #f7f7f5;
+  --muted: #cdc7e5;
   --muted-foreground: #5f5e5a;
-  --accent: #f7f7f5;
+  --accent: #cdc7e5;
   --accent-foreground: #1a1a18;
   --destructive: #e24b4a;
   --input: #e5e4df;
-  --ring: #378add;
+  --ring: #7776bc;
 
   --danger-bg: #fcebeb;
   --danger-text: #a32d2d;
@@ -135,14 +135,14 @@
   --chart-4: #e24b4a;
   --chart-5: #7f77dd;
 
-  --sidebar: #f7f7f5;
+  --sidebar: #ffffff;
   --sidebar-foreground: #1a1a18;
-  --sidebar-primary: #1a1a18;
+  --sidebar-primary: #7776bc;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ffffff;
+  --sidebar-accent: #cdc7e5;
   --sidebar-accent-foreground: #1a1a18;
   --sidebar-border: #e5e4df;
-  --sidebar-ring: #378add;
+  --sidebar-ring: #7776bc;
 }
 
 .dark {

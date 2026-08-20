@@ -5,6 +5,9 @@ import type {
   Invoice,
   LabRequest,
   Patient,
+  Prescription,
+  Appointment,
+  Referral,
   StaffUser,
   TreatmentCourse,
   Visit,
@@ -325,6 +328,10 @@ export const invoices: Invoice[] = [
   },
 ];
 
+export const prescriptions: Prescription[] = [];
+export const appointments: Appointment[] = [];
+export const referrals: Referral[] = [];
+
 export const catalog: CatalogItem[] = [
   { id: "svc-1", type: "consultation", name: "GP consultation", price: 80, active: true },
   { id: "svc-2", type: "consultation", name: "Review visit", price: 50, active: true },
@@ -337,6 +344,8 @@ export const catalog: CatalogItem[] = [
   { id: "svc-12", type: "lab_test", name: "Liver function test", price: 60, active: true },
   { id: "svc-13", type: "lab_test", name: "Widal test", price: 22, active: true },
   { id: "svc-14", type: "lab_test", name: "H. pylori stool antigen", price: 35, active: true },
+  { id: "svc-15", type: "radiology", name: "Chest X-Ray", price: 120, active: true },
+  { id: "svc-16", type: "radiology", name: "Ultrasound Abdomen", price: 150, active: true },
   { id: "svc-6", type: "drug", name: "Amoxicillin 500mg", price: 25, active: true },
   { id: "svc-7", type: "drug", name: "Paracetamol 500mg", price: 8, active: true },
   { id: "svc-8", type: "drug", name: "Amlodipine 5mg", price: 18, active: true },

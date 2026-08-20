@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { notFound, useParams } from "next/navigation";
+<<<<<<< HEAD
 import {
   AlertTriangle,
   Calendar,
@@ -12,12 +13,17 @@ import {
   Stethoscope,
   UserRound,
 } from "lucide-react";
+=======
+import { ChevronDown } from "lucide-react";
+import { toast } from "sonner";
+>>>>>>> 236a1b0 (¨Color_Update¨)
 
 import { DoctorLabResults } from "@/components/clinic/doctor-lab-results";
 import { DoctorPrescriptionPanel } from "@/components/clinic/doctor-prescription-panel";
 import { DoctorVitalsCard } from "@/components/clinic/doctor-vitals-card";
 import { DoctorVisitActions } from "@/components/clinic/doctor-visit-actions";
 import { PageHeader } from "@/components/clinic/page-header";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -25,13 +31,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useClinic } from "@/lib/clinic-store";
 import { ageFromDob } from "@/lib/format";
 import { getPatient, getStaff, patientHistory } from "@/lib/mock-data";
-import type { LabRequest, Patient, Visit } from "@/lib/types";
+import type { LabRequest, Patient, Visit, Prescription } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { visitBadge } from "@/lib/visit-status";
 
 export default function DoctorVisitPage() {
   const { visitId } = useParams<{ visitId: string }>();
-  const { visits, labRequests, ready } = useClinic();
+  const { visits, labRequests, prescriptions, ready, updateVisitDiagnosis } = useClinic();
   const visit = visits.find((item) => item.id === visitId);
 
   if (!ready) return <div className="min-h-[40vh]" />;
@@ -44,10 +50,12 @@ export default function DoctorVisitPage() {
   const badge = visitBadge(visit.status);
   const history = patientHistory(patient.id).filter((item) => item.id !== visit.id);
   const labs = labRequests.filter((item) => item.visitId === visit.id);
+  const visitPrescriptions = prescriptions.filter((item) => item.visitId === visit.id);
 
   return (
     <div className="space-y-5">
       <PageHeader
+<<<<<<< HEAD
         title={`${patient.name} — Consultation`}
         description={`${patient.patientId} · ${ageFromDob(patient.dateOfBirth)} ${patient.gender === "F" ? "Female" : "Male"} · ${doctor?.name ?? "Assigned GP"}`}
         action={
@@ -58,6 +66,11 @@ export default function DoctorVisitPage() {
             patientName={patient.name}
           />
         }
+=======
+        title={`${patient.name} — Visit`}
+        description={`${patient.patientId} · ${ageFromDob(patient.dateOfBirth)}${patient.gender} · ${doctor?.name ?? ""}`}
+        action={<DoctorVisitActions visitId={visit.id} doctorId={visit.doctorId} patientId={patient.id} patientName={patient.name} />}
+>>>>>>> 236a1b0 (¨Color_Update¨)
       />
 
       {/* Critical Allergy Alert Banner */}
@@ -78,6 +91,7 @@ export default function DoctorVisitPage() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Main Clinical Consultation Column */}
         <div className="space-y-4">
+<<<<<<< HEAD
           {/* Section 1: Triage & Vitals */}
           <DoctorVitalsCard />
 
@@ -89,6 +103,11 @@ export default function DoctorVisitPage() {
 
           {/* Section 4: Prescriptions & Pharmacy */}
           <PrescriptionSection visitId={visit.id} />
+=======
+          <ConsultationPanel visit={visit} patient={patient} badge={badge} updateDiagnosis={updateVisitDiagnosis} />
+          <InvestigationsPanel visit={visit} requests={labs} />
+          <PrescriptionsPanel visit={visit} prescriptions={visitPrescriptions} />
+>>>>>>> 236a1b0 (¨Color_Update¨)
         </div>
 
         {/* Right Sidebar: Patient Profile & Visit History */}
@@ -227,11 +246,30 @@ function SectionAccordion({
   );
 }
 
+<<<<<<< HEAD
 function ClinicalNotesSection({ visit }: { visit: Visit }) {
   const [complaint, setComplaint] = useState(visit.reason);
   const [findings, setFindings] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [plan, setPlan] = useState("");
+=======
+function ConsultationPanel({
+  visit,
+  patient,
+  badge,
+  updateDiagnosis,
+}: {
+  visit: Visit;
+  patient: Patient;
+  badge: ReturnType<typeof visitBadge>;
+  updateDiagnosis: (visitId: string, diagnosis: string) => void;
+}) {
+  const [diagnosis, setDiagnosis] = useState(visit.diagnosis || "");
+  const [notes, setNotes] = useState("");
+
+  const defaultOpen =
+    visit.status === "registered" || visit.status === "in-consultation";
+>>>>>>> 236a1b0 (¨Color_Update¨)
 
   return (
     <SectionAccordion
@@ -291,11 +329,58 @@ function ClinicalNotesSection({ visit }: { visit: Visit }) {
           </div>
         </div>
       </div>
+<<<<<<< HEAD
     </SectionAccordion>
   );
 }
 
 function LabResultsSection({
+=======
+      <div className="mt-4 grid gap-1.5">
+        <Label htmlFor="complaint" className="font-normal">
+          Chief complaint
+        </Label>
+        <Input id="complaint" defaultValue={visit.reason} />
+      </div>
+      <div className="mt-3 grid gap-1.5">
+        <Label htmlFor="diagnosis" className="font-normal">
+          Diagnosis
+        </Label>
+        <Input 
+          id="diagnosis" 
+          placeholder="Enter formal diagnosis..." 
+          value={diagnosis}
+          onChange={(e) => setDiagnosis(e.target.value)}
+        />
+      </div>
+      <div className="mt-3 grid gap-1.5">
+        <Label htmlFor="notes" className="font-normal">
+          Examination notes
+        </Label>
+        <Textarea 
+          id="notes" 
+          placeholder="Findings, plan…" 
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+      </div>
+      <div className="mt-4 flex justify-end">
+        <Button 
+          type="button" 
+          onClick={() => {
+            updateDiagnosis(visit.id, diagnosis);
+            toast.success("Consultation saved", { description: "Diagnosis updated on encounter." });
+          }}
+        >
+          Save Consultation
+        </Button>
+      </div>
+    </VisitSection>
+  );
+}
+
+function InvestigationsPanel({
+>>>>>>> 236a1b0 (¨Color_Update¨)
   visit,
   requests,
 }: {
@@ -303,9 +388,10 @@ function LabResultsSection({
   requests: LabRequest[];
 }) {
   const readyCount = requests.filter(
-    (request) => request.status === "result-ready" && request.resultValue,
+    (request) => (request.status === "result-ready" || request.status === "reviewed") && request.resultValue,
   ).length;
 
+<<<<<<< HEAD
   const allReady = requests.length > 0 && readyCount === requests.length;
 
   return (
@@ -313,6 +399,19 @@ function LabResultsSection({
       title="Laboratory orders & results"
       icon={FlaskConical}
       defaultOpen={requests.length > 0}
+=======
+  const summary =
+    requests.length === 0
+      ? "No investigations requested yet"
+      : readyCount === requests.length
+        ? `${requests.length} ${requests.length === 1 ? "result" : "results"} ready`
+        : `${readyCount} of ${requests.length} results ready`;
+
+  return (
+    <VisitSection
+      title="Investigations"
+      defaultOpen={defaultOpen}
+>>>>>>> 236a1b0 (¨Color_Update¨)
       badge={
         requests.length > 0 ? (
           <StatusBadge role={allReady ? "success" : "warning"}>
@@ -324,7 +423,68 @@ function LabResultsSection({
       }
     >
       <DoctorLabResults requests={requests} />
+<<<<<<< HEAD
     </SectionAccordion>
+=======
+    </VisitSection>
+  );
+}
+
+function PrescriptionsPanel({
+  visit,
+  prescriptions,
+}: {
+  visit: Visit;
+  prescriptions: Prescription[];
+}) {
+  const defaultOpen = prescriptions.length > 0;
+
+  return (
+    <VisitSection
+      title="Prescriptions"
+      defaultOpen={defaultOpen}
+      badge={
+        prescriptions.length > 0 ? (
+          <StatusBadge role="success">Prescribed</StatusBadge>
+        ) : undefined
+      }
+      summary={
+        <p className="mt-2 text-[13px] text-fg-secondary">
+          {prescriptions.length === 0 ? "No medicines prescribed yet" : `${prescriptions.length} items prescribed`}
+        </p>
+      }
+    >
+      {prescriptions.length === 0 ? (
+        <p className="text-[13px] text-fg-muted">
+          No medicines prescribed. Use the "Prescribe medicine" button to add from catalog.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {prescriptions.map((rx) => (
+            <div key={rx.id} className="rounded-lg border border-border px-3 py-2">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[14px] font-medium">{rx.drugName}</p>
+                  <p className="mt-0.5 text-[13px] text-fg-secondary">{rx.instructions}</p>
+                </div>
+                <StatusBadge 
+                  role={
+                    rx.status === "dispensed" ? "success" 
+                    : rx.status === "payment-approved" ? "warning" 
+                    : "danger"
+                  }
+                >
+                  {rx.status === "dispensed" ? "Dispensed" 
+                   : rx.status === "payment-approved" ? "Payment Approved" 
+                   : "Awaiting Payment"}
+                </StatusBadge>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </VisitSection>
+>>>>>>> 236a1b0 (¨Color_Update¨)
   );
 }
 
