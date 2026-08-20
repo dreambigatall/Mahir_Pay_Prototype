@@ -24,3 +24,24 @@ export function initials(name: string) {
 export function invoiceTotal(lineItems: { amount: number }[], discount = 0) {
   return lineItems.reduce((sum, item) => sum + item.amount, 0) - discount;
 }
+
+/** Clinic demo clock — matches seeded operational dates. */
+export const CLINIC_TODAY = "2026-08-19";
+
+export function addDaysISO(iso: string, days: number) {
+  const date = new Date(`${iso}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function formatShortDate(iso: string) {
+  const date = new Date(`${iso}T12:00:00`);
+  return date.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}

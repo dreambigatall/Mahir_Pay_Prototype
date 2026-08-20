@@ -51,16 +51,16 @@ export function EditCatalogItemDialog({
         }
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[540px] p-6">
         <DialogHeader>
           <DialogTitle>Edit catalog item</DialogTitle>
           <DialogDescription>
-            Update pricing or details for {item.name}.
+            Update pricing or classification for {item.name}.
           </DialogDescription>
         </DialogHeader>
 
         <form
-          className="grid gap-3.5 pt-1"
+          className="grid gap-4 pt-1"
           onSubmit={(event) => {
             event.preventDefault();
             const amount = Number(price);
@@ -75,7 +75,7 @@ export function EditCatalogItemDialog({
               type,
             });
 
-            toast.success("Item updated", {
+            toast.success("Catalog item updated", {
               description: `"${name.trim()}" is now set to ${formatMoney(amount)}.`,
             });
 
@@ -84,39 +84,41 @@ export function EditCatalogItemDialog({
         >
           {/* Category selection */}
           <div className="grid gap-1.5">
-            <Label className="text-[13px] font-normal">Category</Label>
+            <Label className="text-[13px] font-medium text-foreground">Category *</Label>
             <Select
               value={type}
               onValueChange={(val) => setType(val as CatalogType)}
             >
-              <SelectTrigger className="h-9 w-full">
+              <SelectTrigger className="h-10 w-full bg-surface-1/60 text-[14px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="lab_test">Lab test</SelectItem>
-                <SelectItem value="drug">Medication</SelectItem>
-                <SelectItem value="consultation">Consultation / Service</SelectItem>
+                <SelectItem value="lab_test">Lab test (Diagnostics)</SelectItem>
+                <SelectItem value="drug">Medication (Pharmacy)</SelectItem>
+                <SelectItem value="consultation">Consultation & Clinical Services</SelectItem>
+                <SelectItem value="procedure">Injection / vaccine course</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Item Name */}
           <div className="grid gap-1.5">
-            <Label htmlFor="edit-item-name" className="text-[13px] font-normal">
-              Item name
+            <Label htmlFor="edit-item-name" className="text-[13px] font-medium text-foreground">
+              Item name *
             </Label>
             <Input
               id="edit-item-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              className="h-10 bg-surface-1/60 text-[14px]"
             />
           </div>
 
           {/* Price */}
           <div className="grid gap-1.5">
-            <Label htmlFor="edit-item-price" className="text-[13px] font-normal">
-              Price (GHS)
+            <Label htmlFor="edit-item-price" className="text-[13px] font-medium text-foreground">
+              Price (GHS) *
             </Label>
             <Input
               id="edit-item-price"
@@ -125,12 +127,12 @@ export function EditCatalogItemDialog({
               step="0.01"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="tabular-nums"
+              className="h-10 bg-surface-1/60 text-[14px] font-mono tabular-nums"
               required
             />
           </div>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="pt-3 border-t border-border">
             <Button
               type="button"
               variant="outline"

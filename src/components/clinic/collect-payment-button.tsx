@@ -1,19 +1,21 @@
 "use client";
 
-import { toast } from "sonner";
+import { CollectPaymentModal } from "@/components/clinic/collect-payment-modal";
+import type { Invoice } from "@/lib/types";
 
-import { Button } from "@/components/ui/button";
+export function CollectPaymentButton({
+  invoice,
+  patientName,
+}: {
+  invoice?: Invoice;
+  patientName?: string;
+}) {
+  if (!invoice) return null;
 
-export function CollectPaymentButton() {
   return (
-    <Button
-      onClick={() =>
-        toast.success("Payment recorded", {
-          description: "Visit would close after this in the live system.",
-        })
-      }
-    >
-      Collect payment
-    </Button>
+    <CollectPaymentModal
+      invoice={invoice}
+      patientName={patientName ?? "Patient"}
+    />
   );
 }

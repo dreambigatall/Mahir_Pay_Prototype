@@ -9,6 +9,7 @@ import {
   Receipt,
   Search,
   Stethoscope,
+  Syringe,
   X,
 } from "lucide-react";
 
@@ -41,6 +42,7 @@ const typeBadges: Record<
   lab_test: { label: "Lab test", role: "clinical", icon: FlaskConical },
   drug: { label: "Medication", role: "warning", icon: Pill },
   consultation: { label: "Consultation", role: "info", icon: Stethoscope },
+  procedure: { label: "Injection / vaccine", role: "clinical", icon: Syringe },
 };
 
 export default function AdminCatalogPage() {
@@ -53,9 +55,10 @@ export default function AdminCatalogPage() {
     const labCount = catalog.filter((item) => item.type === "lab_test" && item.active).length;
     const drugCount = catalog.filter((item) => item.type === "drug" && item.active).length;
     const consultCount = catalog.filter((item) => item.type === "consultation" && item.active).length;
+    const procedureCount = catalog.filter((item) => item.type === "procedure" && item.active).length;
     const inactiveCount = catalog.filter((item) => !item.active).length;
 
-    return { total, labCount, drugCount, consultCount, inactiveCount };
+    return { total, labCount, drugCount, consultCount, procedureCount, inactiveCount };
   }, [catalog]);
 
   const filteredItems = useMemo(() => {
@@ -90,12 +93,12 @@ export default function AdminCatalogPage() {
     <div className="space-y-5">
       <PageHeader
         title="Service catalog"
-        description="Standard clinic pricing and service catalog for consultations, lab orders, and pharmacy items."
+        description="Standard clinic pricing for consultations, lab orders, pharmacy, and injection/vaccination courses."
         action={<AddCatalogItemDialog />}
       />
 
       {/* Summary KPI Strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <div className="rounded-xl border border-border bg-surface-2 p-3.5">
           <div className="flex items-center justify-between text-fg-secondary">
             <span className="text-[12px] font-medium">Lab tests</span>
@@ -127,6 +130,17 @@ export default function AdminCatalogPage() {
             {stats.consultCount}
           </p>
           <p className="mt-0.5 text-[11px] text-fg-muted">Base visit services</p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-surface-2 p-3.5">
+          <div className="flex items-center justify-between text-fg-secondary">
+            <span className="text-[12px] font-medium">Injections</span>
+            <Syringe className="size-4 text-clinical-fill" />
+          </div>
+          <p className="mt-1 text-[22px] leading-tight font-semibold tabular-nums">
+            {stats.procedureCount}
+          </p>
+          <p className="mt-0.5 text-[11px] text-fg-muted">Vaccines & daily procedures</p>
         </div>
 
         <div className="rounded-xl border border-border bg-surface-2 p-3.5">
@@ -165,6 +179,9 @@ export default function AdminCatalogPage() {
             </TabsTrigger>
             <TabsTrigger value="consultation" className="text-[13px]">
               Consultations ({catalog.filter((i) => i.type === "consultation").length})
+            </TabsTrigger>
+            <TabsTrigger value="procedure" className="text-[13px]">
+              Injections ({catalog.filter((i) => i.type === "procedure").length})
             </TabsTrigger>
             {stats.inactiveCount > 0 && (
               <TabsTrigger value="inactive" className="text-[13px]">

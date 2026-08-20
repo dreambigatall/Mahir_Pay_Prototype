@@ -18,7 +18,7 @@ export default function DoctorQueuePage() {
         description={user ? `${user.name} · ${user.room ?? "Clinic"}` : "Doctor workspace"}
       />
       <QueueBoard
-        visits={mine}
+        visits={mine.filter((visit) => visit.kind !== "procedure")}
         hrefFor={(visit) => `/doctor/visits/${visit.id}`}
       />
     </div>

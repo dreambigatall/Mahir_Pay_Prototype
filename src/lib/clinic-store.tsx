@@ -9,15 +9,45 @@ import {
   type ReactNode,
 } from "react";
 
-import { catalog as seedCatalog, labRequests as seedLabRequests, visits as seedVisits } from "@/lib/mock-data";
-import type { CatalogItem, CatalogType, LabRequest, LabResultFlag, LabUrgency, Visit } from "@/lib/types";
+import { dosesForCourse } from "@/lib/courses";
+import { addDaysISO, CLINIC_TODAY } from "@/lib/format";
+import {
+  catalog as seedCatalog,
+  courseDoses as seedCourseDoses,
+  invoices as seedInvoices,
+  labRequests as seedLabRequests,
+  patients as seedPatients,
+  treatmentCourses as seedCourses,
+  visits as seedVisits,
+} from "@/lib/mock-data";
+import type {
+  CatalogItem,
+  CatalogType,
+  CourseBillingMode,
+  CourseDose,
+  Invoice,
+  InvoiceLine,
+  LabRequest,
+  LabResultFlag,
+  LabUrgency,
+  Patient,
+  Prescription,
+  TreatmentCourse,
+  Visit,
+  VisitStatus,
+} from "@/lib/types";
 
-const STORAGE_KEY = "ridgeway-cms-clinic-data-v3";
+const STORAGE_KEY = "ridgeway-cms-clinic-data-v4";
 
 type ClinicState = {
   catalog: CatalogItem[];
   labRequests: LabRequest[];
   visits: Visit[];
+  prescriptions: Prescription[];
+  patients: Patient[];
+  invoices: Invoice[];
+  courses: TreatmentCourse[];
+  doses: CourseDose[];
 };
 
 type OrderLabsInput = {
@@ -28,9 +58,40 @@ type OrderLabsInput = {
   clinicalNotes: string;
 };
 
+type RegisterPatientInput = {
+  name: string;
+  dob: string;
+  gender: "F" | "M";
+  phone: string;
+  doctorId: string;
+  reason?: string;
+  allergies?: string[];
+  address?: string;
+  emergencyContact?: string;
+};
+
+type StartCourseInput = {
+  patientId?: string;
+  newPatient?: {
+    name: string;
+    dob: string;
+    gender: "F" | "M";
+    phone: string;
+    allergies?: string[];
+  };
+  catalogItemId: string;
+  totalDoses: number;
+  startDate: string;
+  billingMode: CourseBillingMode;
+  notes?: string;
+  checkInToday?: boolean;
+};
+
 type ClinicContextValue = ClinicState & {
   ready: boolean;
   labTests: CatalogItem[];
+  drugs: CatalogItem[];
+  procedures: CatalogItem[];
   addLabTest: (input: { name: string; price: number }) => void;
   setLabTestActive: (id: string, active: boolean) => void;
   addCatalogItem: (input: { type: CatalogType; name: string; price: number }) => void;
@@ -53,6 +114,22 @@ type ClinicContextValue = ClinicState & {
       }
     >,
   ) => void;
+  updateVisitStatus: (visitId: string, status: VisitStatus) => void;
+  completeDoctorConsultation: (visitId: string) => void;
+  addPrescription: (prescription: Omit<Prescription, "id" | "createdAt">) => void;
+  removePrescription: (prescriptionId: string) => void;
+  registerPatient: (input: RegisterPatientInput) => { patient: Patient; visit: Visit };
+  checkInVisit: (patientId: string, doctorId: string, reason: string) => Visit;
+  startCourse: (input: StartCourseInput) => {
+    patient: Patient;
+    course: TreatmentCourse;
+    visit?: Visit;
+  };
+  checkInDose: (doseId: string) => Visit;
+  administerDose: (doseId: string, givenBy: string) => void;
+  markDoseMissed: (doseId: string) => void;
+  collectPayment: (visitId: string, paymentMethod?: string) => void;
+  getInvoiceByVisit: (visitId: string) => Invoice | undefined;
 };
 
 const ClinicContext = createContext<ClinicContextValue | null>(null);
@@ -78,11 +155,162 @@ function mergeCatalog(stored: CatalogItem[] | undefined): CatalogItem[] {
   return [...byId.values()];
 }
 
+function catalogPrefix(type: CatalogType) {
+  if (type === "lab_test") return "lab";
+  if (type === "drug") return "drug";
+  if (type === "procedure") return "proc";
+  return "svc";
+}
+
+function createPatientRecord(input: {
+  name: string;
+  dob: string;
+  gender: "F" | "M";
+  phone: string;
+  allergies?: string[];
+  address?: string;
+  emergencyContact?: string;
+}): Patient {
+  return {
+    id: `p-${Date.now()}`,
+    patientId: `PT-${Math.floor(10000 + Math.random() * 90000)}`,
+    name: input.name.trim(),
+    dateOfBirth: input.dob,
+    gender: input.gender,
+    phone: input.phone.trim(),
+    address: input.address?.trim() || "",
+    emergencyContact: input.emergencyContact?.trim() || "",
+    allergies: input.allergies ?? [],
+  };
+}
+
+function packagePaid(state: ClinicState, course: TreatmentCourse) {
+  const day1 = state.doses.find(
+    (dose) => dose.courseId === course.id && dose.dayNumber === 1,
+  );
+  if (!day1?.visitId) return false;
+  return state.invoices.some(
+    (invoice) => invoice.visitId === day1.visitId && invoice.paymentStatus === "paid",
+  );
+}
+
+function buildProcedureInvoice(
+  state: ClinicState,
+  visit: Visit,
+): Invoice | undefined {
+  if (visit.kind !== "procedure" || !visit.courseId || !visit.doseId) return undefined;
+
+  const course = state.courses.find((item) => item.id === visit.courseId);
+  const dose = state.doses.find((item) => item.id === visit.doseId);
+  if (!course || !dose) return undefined;
+
+  const catalogItem = state.catalog.find((item) => item.id === course.catalogItemId);
+  const unitPrice = catalogItem?.price ?? 0;
+
+  if (course.billingMode === "package") {
+    const day1 = state.doses.find(
+      (item) => item.courseId === course.id && item.dayNumber === 1,
+    );
+    const packageVisitId = day1?.visitId ?? visit.id;
+    const existing = state.invoices.find((invoice) => invoice.visitId === packageVisitId);
+    if (existing) return existing;
+
+    if (dose.dayNumber !== 1) {
+      return {
+        id: `INV-${visit.id.replace("v-", "")}`,
+        visitId: visit.id,
+        lineItems: [
+          {
+            type: "procedure",
+            name: `${course.procedureName} · Day ${dose.dayNumber} (covered by course)`,
+            amount: 0,
+          },
+        ],
+        discount: 0,
+        paymentStatus: packagePaid(state, course) ? "paid" : "unpaid",
+      };
+    }
+
+    return {
+      id: `INV-${visit.id.replace("v-", "")}`,
+      visitId: visit.id,
+      lineItems: [
+        {
+          type: "procedure",
+          name: `${course.procedureName} × ${course.totalDoses} days`,
+          amount: unitPrice * course.totalDoses,
+        },
+      ],
+      discount: 0,
+      paymentStatus: visit.status === "billed" ? "paid" : "unpaid",
+    };
+  }
+
+  const existing = state.invoices.find((invoice) => invoice.visitId === visit.id);
+  if (existing) return existing;
+
+  return {
+    id: `INV-${visit.id.replace("v-", "")}`,
+    visitId: visit.id,
+    lineItems: [
+      {
+        type: "procedure",
+        name: `${course.procedureName} · Day ${dose.dayNumber} of ${course.totalDoses}`,
+        amount: unitPrice,
+      },
+    ],
+    discount: 0,
+    paymentStatus: visit.status === "billed" ? "paid" : "unpaid",
+  };
+}
+
+function buildConsultationInvoice(state: ClinicState, visit: Visit): Invoice {
+  const existing = state.invoices.find((invoice) => invoice.visitId === visit.id);
+  if (existing) return existing;
+
+  const lines: InvoiceLine[] = [
+    { type: "consultation", name: "GP consultation", amount: 80 },
+  ];
+
+  const labs = state.labRequests.filter((lab) => lab.visitId === visit.id);
+  for (const lab of labs) {
+    const item = state.catalog.find((catalogItem) => catalogItem.id === lab.catalogItemId);
+    lines.push({
+      type: "lab_test",
+      name: lab.testName,
+      amount: item?.price ?? 40,
+    });
+  }
+
+  const rxs = state.prescriptions.filter((rx) => rx.visitId === visit.id);
+  for (const rx of rxs) {
+    const item = state.catalog.find((catalogItem) => catalogItem.id === rx.drugId);
+    lines.push({
+      type: "drug",
+      name: rx.drugName,
+      amount: item?.price ?? 20,
+    });
+  }
+
+  return {
+    id: `INV-${visit.id.replace("v-", "")}`,
+    visitId: visit.id,
+    lineItems: lines,
+    discount: 0,
+    paymentStatus: visit.status === "billed" ? "paid" : "unpaid",
+  };
+}
+
 export function ClinicProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ClinicState>({
     catalog: seedCatalog,
     labRequests: seedLabRequests,
     visits: seedVisits,
+    prescriptions: [],
+    patients: seedPatients,
+    invoices: seedInvoices,
+    courses: seedCourses,
+    doses: seedCourseDoses,
   });
   const [ready, setReady] = useState(false);
 
@@ -95,6 +323,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
           catalog: mergeCatalog(parsed.catalog),
           labRequests: parsed.labRequests?.length ? parsed.labRequests : seedLabRequests,
           visits: parsed.visits?.length ? parsed.visits : seedVisits,
+          prescriptions: parsed.prescriptions ?? [],
+          patients: parsed.patients?.length ? parsed.patients : seedPatients,
+          invoices: parsed.invoices?.length ? parsed.invoices : seedInvoices,
+          courses: parsed.courses?.length ? parsed.courses : seedCourses,
+          doses: parsed.doses?.length ? parsed.doses : seedCourseDoses,
         });
       }
     } catch {
@@ -115,14 +348,36 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name));
 
+    const drugs = state.catalog
+      .filter((item) => item.type === "drug" && item.active)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const procedures = state.catalog
+      .filter((item) => item.type === "procedure" && item.active)
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const getInvoiceByVisit = (visitId: string): Invoice | undefined => {
+      const visit = state.visits.find((item) => item.id === visitId);
+      if (!visit) {
+        return state.invoices.find((invoice) => invoice.visitId === visitId);
+      }
+      if (visit.kind === "procedure") {
+        return buildProcedureInvoice(state, visit);
+      }
+      return buildConsultationInvoice(state, visit);
+    };
+
     return {
       ...state,
       ready,
       labTests,
+      drugs,
+      procedures,
       addCatalogItem: ({ type, name, price }) => {
-        const prefix = type === "lab_test" ? "lab" : type === "drug" ? "drug" : "svc";
         const item: CatalogItem = {
-          id: `${prefix}-${Date.now()}`,
+          id: `${catalogPrefix(type)}-${Date.now()}`,
           type,
           name: name.trim(),
           price,
@@ -250,6 +505,347 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
               visit.id === visitId && visitDone
                 ? { ...visit, status: "lab-complete" }
                 : visit,
+            ),
+          };
+        });
+      },
+      updateVisitStatus: (visitId, status) => {
+        setState((current) => ({
+          ...current,
+          visits: current.visits.map((v) =>
+            v.id === visitId ? { ...v, status } : v,
+          ),
+        }));
+      },
+      completeDoctorConsultation: (visitId) => {
+        setState((current) => {
+          const pendingLabs = current.labRequests.filter(
+            (req) => req.visitId === visitId && req.status !== "result-ready",
+          );
+          const targetStatus: VisitStatus =
+            pendingLabs.length > 0 ? "awaiting-lab" : "ready-for-billing";
+
+          return {
+            ...current,
+            visits: current.visits.map((v) =>
+              v.id === visitId ? { ...v, status: targetStatus } : v,
+            ),
+          };
+        });
+      },
+      addPrescription: (prescription) => {
+        const item: Prescription = {
+          ...prescription,
+          id: `rx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          createdAt: new Date().toISOString(),
+        };
+        setState((current) => ({
+          ...current,
+          prescriptions: [item, ...current.prescriptions],
+        }));
+      },
+      removePrescription: (prescriptionId) => {
+        setState((current) => ({
+          ...current,
+          prescriptions: current.prescriptions.filter((rx) => rx.id !== prescriptionId),
+        }));
+      },
+      getInvoiceByVisit,
+      registerPatient: ({
+        name,
+        dob,
+        gender,
+        phone,
+        doctorId,
+        reason,
+        allergies,
+        address,
+        emergencyContact,
+      }) => {
+        const newPatient = createPatientRecord({
+          name,
+          dob,
+          gender,
+          phone,
+          allergies,
+          address,
+          emergencyContact,
+        });
+
+        const visitId = `v-${Date.now()}`;
+        const newVisit: Visit = {
+          id: visitId,
+          patientId: newPatient.id,
+          doctorId,
+          receptionistId: "u-rec-1",
+          status: "registered",
+          reason: reason?.trim() || "Consultation",
+          waitMinutes: 0,
+          createdAt: new Date().toISOString(),
+          kind: "consultation",
+        };
+
+        setState((current) => ({
+          ...current,
+          patients: [newPatient, ...current.patients],
+          visits: [newVisit, ...current.visits],
+        }));
+
+        return { patient: newPatient, visit: newVisit };
+      },
+      checkInVisit: (patientId, doctorId, reason) => {
+        const visitId = `v-${Date.now()}`;
+        const newVisit: Visit = {
+          id: visitId,
+          patientId,
+          doctorId,
+          receptionistId: "u-rec-1",
+          status: "registered",
+          reason: reason?.trim() || "Follow-up",
+          waitMinutes: 0,
+          createdAt: new Date().toISOString(),
+          kind: "consultation",
+        };
+
+        setState((current) => ({
+          ...current,
+          visits: [newVisit, ...current.visits],
+        }));
+
+        return newVisit;
+      },
+      startCourse: (input) => {
+        const catalogItem = state.catalog.find((item) => item.id === input.catalogItemId);
+        if (!catalogItem || catalogItem.type !== "procedure") {
+          throw new Error("Select a procedure from the catalog.");
+        }
+
+        let patient = input.patientId
+          ? state.patients.find((item) => item.id === input.patientId)
+          : undefined;
+        const createdPatient = !patient && input.newPatient
+          ? createPatientRecord(input.newPatient)
+          : undefined;
+        patient = patient ?? createdPatient;
+        if (!patient) {
+          throw new Error("Select or register a patient for this course.");
+        }
+
+        const courseId = `course-${Date.now()}`;
+        const totalDoses = Math.max(1, Math.min(31, Math.round(input.totalDoses)));
+        const course: TreatmentCourse = {
+          id: courseId,
+          patientId: patient.id,
+          catalogItemId: catalogItem.id,
+          procedureName: catalogItem.name,
+          totalDoses,
+          startDate: input.startDate,
+          billingMode: input.billingMode,
+          status: "active",
+          notes: input.notes?.trim() || "",
+          createdAt: new Date().toISOString(),
+          receptionistId: "u-rec-1",
+        };
+
+        const doses: CourseDose[] = Array.from({ length: totalDoses }, (_, index) => ({
+          id: `dose-${courseId}-${index + 1}`,
+          courseId,
+          dayNumber: index + 1,
+          scheduledDate: addDaysISO(input.startDate, index),
+          status: "scheduled",
+        }));
+
+        let visit: Visit | undefined;
+        if (input.checkInToday) {
+          const dose =
+            doses.find((item) => item.scheduledDate === CLINIC_TODAY) ?? doses[0];
+          const visitId = `v-${Date.now()}`;
+          visit = {
+            id: visitId,
+            patientId: patient.id,
+            doctorId: "",
+            receptionistId: "u-rec-1",
+            status: "registered",
+            reason: `${catalogItem.name} · Day ${dose.dayNumber} of ${totalDoses}`,
+            waitMinutes: 0,
+            createdAt: new Date().toISOString(),
+            kind: "procedure",
+            courseId,
+            doseId: dose.id,
+          };
+          dose.status = "checked-in";
+          dose.visitId = visitId;
+        }
+
+        const patientToAdd = createdPatient;
+        const visitToAdd = visit;
+
+        setState((current) => ({
+          ...current,
+          patients: patientToAdd ? [patientToAdd, ...current.patients] : current.patients,
+          courses: [course, ...current.courses],
+          doses: [...doses, ...current.doses],
+          visits: visitToAdd ? [visitToAdd, ...current.visits] : current.visits,
+        }));
+
+        return { patient, course, visit };
+      },
+      checkInDose: (doseId) => {
+        const dose = state.doses.find((item) => item.id === doseId);
+        const course = dose
+          ? state.courses.find((item) => item.id === dose.courseId)
+          : undefined;
+        if (!dose || !course) {
+          throw new Error("Dose not found.");
+        }
+        if (dose.status === "given") {
+          throw new Error("This day’s dose is already marked as given.");
+        }
+        if (dose.visitId) {
+          const existing = state.visits.find((item) => item.id === dose.visitId);
+          if (existing) return existing;
+        }
+
+        const visitId = `v-${Date.now()}`;
+        const visit: Visit = {
+          id: visitId,
+          patientId: course.patientId,
+          doctorId: "",
+          receptionistId: "u-rec-1",
+          status: "registered",
+          reason: `${course.procedureName} · Day ${dose.dayNumber} of ${course.totalDoses}`,
+          waitMinutes: 0,
+          createdAt: new Date().toISOString(),
+          kind: "procedure",
+          courseId: course.id,
+          doseId: dose.id,
+        };
+
+        setState((current) => ({
+          ...current,
+          visits: [visit, ...current.visits],
+          doses: current.doses.map((item) =>
+            item.id === doseId
+              ? { ...item, status: "checked-in" as const, visitId }
+              : item,
+          ),
+        }));
+
+        return visit;
+      },
+      administerDose: (doseId, givenBy) => {
+        setState((current) => {
+          const dose = current.doses.find((item) => item.id === doseId);
+          const course = dose
+            ? current.courses.find((item) => item.id === dose.courseId)
+            : undefined;
+          if (!dose || !course || dose.status === "given") return current;
+
+          let visits = current.visits;
+          let visitId = dose.visitId;
+          let nextDoses = current.doses;
+
+          if (!visitId) {
+            visitId = `v-${Date.now()}`;
+            const visit: Visit = {
+              id: visitId,
+              patientId: course.patientId,
+              doctorId: "",
+              receptionistId: "u-rec-1",
+              status: "registered",
+              reason: `${course.procedureName} · Day ${dose.dayNumber} of ${course.totalDoses}`,
+              waitMinutes: 0,
+              createdAt: new Date().toISOString(),
+              kind: "procedure",
+              courseId: course.id,
+              doseId: dose.id,
+            };
+            visits = [visit, ...current.visits];
+            nextDoses = current.doses.map((item) =>
+              item.id === doseId ? { ...item, visitId, status: "checked-in" as const } : item,
+            );
+          }
+
+          const covered =
+            course.billingMode === "package" && packagePaid({ ...current, visits }, course);
+          const needsBilling =
+            course.billingMode === "per-dose" ||
+            (course.billingMode === "package" && dose.dayNumber === 1 && !covered);
+
+          const nextStatus: VisitStatus =
+            needsBilling && !covered ? "ready-for-billing" : "billed";
+
+          nextDoses = nextDoses.map((item) =>
+            item.id === doseId
+              ? {
+                  ...item,
+                  status: "given" as const,
+                  visitId,
+                  givenAt: new Date().toISOString(),
+                  givenBy,
+                }
+              : item,
+          );
+
+          const courseDoses = dosesForCourse(nextDoses, course.id);
+          const allGiven = courseDoses.every((item) => item.status === "given");
+
+          return {
+            ...current,
+            doses: nextDoses,
+            courses: current.courses.map((item) =>
+              item.id === course.id && allGiven
+                ? { ...item, status: "completed" as const }
+                : item,
+            ),
+            visits: visits.map((visit) =>
+              visit.id === visitId ? { ...visit, status: nextStatus } : visit,
+            ),
+          };
+        });
+      },
+      markDoseMissed: (doseId) => {
+        setState((current) => ({
+          ...current,
+          doses: current.doses.map((item) =>
+            item.id === doseId && item.status !== "given"
+              ? { ...item, status: "missed" as const }
+              : item,
+          ),
+        }));
+      },
+      collectPayment: (visitId, _paymentMethod) => {
+        setState((current) => {
+          const visit = current.visits.find((item) => item.id === visitId);
+          const invoice =
+            visit?.kind === "procedure"
+              ? buildProcedureInvoice(current, visit)
+              : visit
+                ? buildConsultationInvoice(current, visit)
+                : current.invoices.find((item) => item.visitId === visitId);
+
+          let updatedInvoices = current.invoices;
+          if (invoice) {
+            const exists = current.invoices.some((item) => item.visitId === invoice.visitId);
+            if (exists) {
+              updatedInvoices = current.invoices.map((item) =>
+                item.visitId === invoice.visitId
+                  ? { ...item, paymentStatus: "paid" as const }
+                  : item,
+              );
+            } else {
+              updatedInvoices = [
+                { ...invoice, paymentStatus: "paid" },
+                ...current.invoices,
+              ];
+            }
+          }
+
+          return {
+            ...current,
+            invoices: updatedInvoices,
+            visits: current.visits.map((item) =>
+              item.id === visitId ? { ...item, status: "billed" as const } : item,
             ),
           };
         });

@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { GripVertical } from "lucide-react";
 
-import { getPatient, getStaff } from "@/lib/mock-data";
+import { useClinic } from "@/lib/clinic-store";
 import { ageFromDob } from "@/lib/format";
+import { getPatient, getStaff } from "@/lib/mock-data";
 import type { Visit } from "@/lib/types";
 import { QUEUE_COLUMNS, visitDot } from "@/lib/visit-status";
 
@@ -25,13 +28,15 @@ export function QueueBoard({
             className="w-[280px] shrink-0 rounded-xl bg-surface-1 p-3"
           >
             <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
-              <p className="text-[13px] font-medium">{column.title}</p>
-              <span className="text-[12px] text-fg-muted">{cards.length}</span>
+              <p className="text-[13px] font-medium text-foreground">{column.title}</p>
+              <span className="font-mono text-[12px] font-medium text-fg-muted">
+                {cards.length}
+              </span>
             </div>
             <div className="space-y-2">
               {cards.length === 0 ? (
                 <p className="py-8 text-center text-[12px] text-fg-muted">
-                  No patients waiting
+                  No patients in this stage
                 </p>
               ) : (
                 cards.map((visit) => (
@@ -51,7 +56,9 @@ export function QueueBoard({
 }
 
 function QueueCard({ visit, href }: { visit: Visit; href: string }) {
-  const patient = getPatient(visit.patientId);
+  const { patients } = useClinic();
+  const patient =
+    patients.find((p) => p.id === visit.patientId) || getPatient(visit.patientId);
   const doctor = getStaff(visit.doctorId);
   if (!patient) return null;
 
@@ -63,27 +70,40 @@ function QueueCard({ visit, href }: { visit: Visit; href: string }) {
       className="block rounded-xl border border-border bg-surface-2 p-3 transition-colors hover:border-border-strong"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <GripVertical className="size-3.5 text-fg-muted" />
-          <p className="text-[14px] font-medium">{patient.name}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <GripVertical className="size-3.5 text-fg-muted shrink-0" />
+          <p className="text-[14px] font-medium text-foreground truncate">{patient.name}</p>
         </div>
         <span className={`mt-1 size-2 shrink-0 rounded-full ${visitDot(visit.status)}`} />
       </div>
-      <p className="mt-1 font-mono text-[12px] text-fg-muted">
-        {patient.patientId} · {ageFromDob(patient.dateOfBirth)}
-        {patient.gender}
+
+      <p className="mt-1 font-mono text-[11px] text-fg-muted">
+        {patient.patientId} · {ageFromDob(patient.dateOfBirth)}{patient.gender}
       </p>
-      <p className="mt-2 text-[13px]">
+
+      <p className="mt-2 text-[13px] text-foreground truncate">
         {doctor?.name} {doctor?.room ? `· ${doctor.room}` : ""}
       </p>
-      <p className="text-[13px] text-fg-secondary">{visit.reason}</p>
-      {visit.status !== "billed" ? (
-        <p className={`text-[12px] ${overSla ? "text-warning-text" : "text-fg-muted"}`}>
-          Waiting {visit.waitMinutes} min
+      <p className="text-[12px] text-fg-secondary truncate">{visit.reason}</p>
+      {visit.kind === "procedure" ? (
+        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-clinical-text">
+          Injection / vaccine
         </p>
-      ) : (
-        <p className="text-[12px] text-fg-muted">Visit closed</p>
-      )}
+      ) : null}
+
+      <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between text-[11px]">
+        {visit.status !== "billed" ? (
+          <span className={overSla ? "font-semibold text-danger-text" : "text-fg-muted font-mono"}>
+            Waiting {visit.waitMinutes}m
+          </span>
+        ) : (
+          <span className="text-success-text font-medium">Visit closed</span>
+        )}
+
+        <span className="font-mono text-fg-muted text-[10px] uppercase">
+          {visit.id.slice(-6)}
+        </span>
+      </div>
     </Link>
   );
 }

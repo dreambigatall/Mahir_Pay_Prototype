@@ -6,6 +6,7 @@ import {
   Palette,
   Receipt,
   Stethoscope,
+  Syringe,
   Users,
 } from "lucide-react";
 
@@ -32,6 +33,7 @@ export function navFor(role: Role) {
     case "receptionist":
       return [
         { href: "/receptionist", label: "Queue", icon: Columns3 },
+        { href: "/receptionist/courses", label: "Injections", icon: Syringe },
         { href: "/receptionist/patients", label: "Patients", icon: Users },
         { href: "/receptionist/billing", label: "Billing", icon: Receipt },
       ];

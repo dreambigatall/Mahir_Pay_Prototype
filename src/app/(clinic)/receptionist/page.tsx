@@ -19,7 +19,9 @@ export default function ReceptionistQueuePage() {
       <QueueBoard
         visits={todaysVisits(visits)}
         hrefFor={(visit) =>
-          visit.status === "ready-for-billing" || visit.status === "billed"
+          visit.kind === "procedure" && visit.courseId
+            ? `/receptionist/courses/${visit.courseId}`
+            : visit.status === "ready-for-billing" || visit.status === "billed"
             ? `/receptionist/billing/${visit.id}`
             : `/receptionist/visits/${visit.id}`
         }

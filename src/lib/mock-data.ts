@@ -1,9 +1,12 @@
+import { addDaysISO } from "@/lib/format";
 import type {
   CatalogItem,
+  CourseDose,
   Invoice,
   LabRequest,
   Patient,
   StaffUser,
+  TreatmentCourse,
   Visit,
 } from "@/lib/types";
 
@@ -120,6 +123,17 @@ export const patients: Patient[] = [
     emergencyContact: "Yaw Frimpong · 055 667 1201",
     allergies: [],
   },
+  {
+    id: "p-8",
+    patientId: "PT-00502",
+    name: "Abena Owusu",
+    dateOfBirth: "1990-05-22",
+    gender: "F",
+    phone: "024 772 3344",
+    address: "Dansoman",
+    emergencyContact: "Kwesi Owusu · 024 772 3345",
+    allergies: [],
+  },
 ];
 
 export const visits: Visit[] = [
@@ -203,6 +217,19 @@ export const visits: Visit[] = [
     waitMinutes: 3,
     createdAt: "2026-08-18T10:20:00",
   },
+  {
+    id: "v-rx-1",
+    patientId: "p-8",
+    doctorId: "",
+    receptionistId: "u-rec-1",
+    status: "billed",
+    reason: "Rabies vaccine (daily dose) · Day 1 of 7",
+    waitMinutes: 0,
+    createdAt: "2026-08-13T08:15:00",
+    kind: "procedure",
+    courseId: "course-1",
+    doseId: "dose-1-1",
+  },
 ];
 
 export const labRequests: LabRequest[] = [
@@ -283,6 +310,19 @@ export const invoices: Invoice[] = [
     discount: 0,
     paymentStatus: "paid",
   },
+  {
+    id: "INV-RX01",
+    visitId: "v-rx-1",
+    lineItems: [
+      {
+        type: "procedure",
+        name: "Rabies vaccine (daily dose) × 7 days",
+        amount: 245,
+      },
+    ],
+    discount: 0,
+    paymentStatus: "paid",
+  },
 ];
 
 export const catalog: CatalogItem[] = [
@@ -300,7 +340,44 @@ export const catalog: CatalogItem[] = [
   { id: "svc-6", type: "drug", name: "Amoxicillin 500mg", price: 25, active: true },
   { id: "svc-7", type: "drug", name: "Paracetamol 500mg", price: 8, active: true },
   { id: "svc-8", type: "drug", name: "Amlodipine 5mg", price: 18, active: true },
+  { id: "svc-20", type: "procedure", name: "Rabies vaccine (daily dose)", price: 35, active: true },
+  { id: "svc-21", type: "procedure", name: "Tetanus toxoid injection", price: 20, active: true },
+  { id: "svc-22", type: "procedure", name: "Daily IM injection", price: 15, active: true },
 ];
+
+const rabiesStart = "2026-08-13";
+
+export const treatmentCourses: TreatmentCourse[] = [
+  {
+    id: "course-1",
+    patientId: "p-8",
+    catalogItemId: "svc-20",
+    procedureName: "Rabies vaccine (daily dose)",
+    totalDoses: 7,
+    startDate: rabiesStart,
+    billingMode: "package",
+    status: "active",
+    notes: "Post-exposure series. Mark each day after the injection is given.",
+    createdAt: `${rabiesStart}T08:10:00`,
+    receptionistId: "u-rec-1",
+  },
+];
+
+export const courseDoses: CourseDose[] = Array.from({ length: 7 }, (_, index) => {
+  const dayNumber = index + 1;
+  const scheduledDate = addDaysISO(rabiesStart, index);
+  const given = dayNumber <= 6;
+  return {
+    id: `dose-1-${dayNumber}`,
+    courseId: "course-1",
+    dayNumber,
+    scheduledDate,
+    status: given ? "given" : "scheduled",
+    visitId: given ? `v-rx-${dayNumber}` : undefined,
+    givenAt: given ? `${scheduledDate}T08:40:00` : undefined,
+    givenBy: given ? "Ama Serwaa" : undefined,
+  } satisfies CourseDose;
+});
 
 export function getStaff(id: string) {
   return staff.find((item) => item.id === id);
@@ -320,7 +397,10 @@ export function getInvoiceByVisit(visitId: string) {
 
 export function visitsForDoctor(doctorId: string, source = visits) {
   return source.filter(
-    (visit) => visit.doctorId === doctorId && visit.createdAt.startsWith("2026-08-18"),
+    (visit) =>
+      visit.doctorId === doctorId &&
+      visit.kind !== "procedure" &&
+      visit.createdAt.startsWith("2026-08-18"),
   );
 }
 

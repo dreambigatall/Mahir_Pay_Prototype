@@ -2,9 +2,20 @@
 
 import { useState, type ReactNode } from "react";
 import { notFound, useParams } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import {
+  AlertTriangle,
+  Calendar,
+  ChevronDown,
+  FileText,
+  FlaskConical,
+  Pill,
+  Stethoscope,
+  UserRound,
+} from "lucide-react";
 
 import { DoctorLabResults } from "@/components/clinic/doctor-lab-results";
+import { DoctorPrescriptionPanel } from "@/components/clinic/doctor-prescription-panel";
+import { DoctorVitalsCard } from "@/components/clinic/doctor-vitals-card";
 import { DoctorVisitActions } from "@/components/clinic/doctor-visit-actions";
 import { PageHeader } from "@/components/clinic/page-header";
 import { Input } from "@/components/ui/input";
@@ -37,30 +48,130 @@ export default function DoctorVisitPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title={`${patient.name} — Visit`}
-        description={`${patient.patientId} · ${ageFromDob(patient.dateOfBirth)}${patient.gender} · ${doctor?.name ?? ""}`}
-        action={<DoctorVisitActions visitId={visit.id} doctorId={visit.doctorId} />}
+        title={`${patient.name} — Consultation`}
+        description={`${patient.patientId} · ${ageFromDob(patient.dateOfBirth)} ${patient.gender === "F" ? "Female" : "Male"} · ${doctor?.name ?? "Assigned GP"}`}
+        action={
+          <DoctorVisitActions
+            visitId={visit.id}
+            doctorId={visit.doctorId}
+            patientId={patient.id}
+            patientName={patient.name}
+          />
+        }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+      {/* Critical Allergy Alert Banner */}
+      {patient.allergies.length > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-danger-fill/30 bg-danger-bg p-3.5 text-danger-text">
+          <AlertTriangle className="size-5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold">
+              Known Drug Allergies: {patient.allergies.join(", ")}
+            </p>
+            <p className="text-[12px] opacity-90">
+              Verify contraindications before prescribing medications or administering injectables.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        {/* Main Clinical Consultation Column */}
         <div className="space-y-4">
-          <ConsultationPanel visit={visit} patient={patient} badge={badge} />
-          <LabResultsPanel visit={visit} requests={labs} />
+          {/* Section 1: Triage & Vitals */}
+          <DoctorVitalsCard />
+
+          {/* Section 2: Clinical Examination & Diagnosis */}
+          <ClinicalNotesSection visit={visit} />
+
+          {/* Section 3: Laboratory Diagnostic Orders & Results */}
+          <LabResultsSection visit={visit} requests={labs} />
+
+          {/* Section 4: Prescriptions & Pharmacy */}
+          <PrescriptionSection visitId={visit.id} />
         </div>
 
-        <aside className="space-y-3">
+        {/* Right Sidebar: Patient Profile & Visit History */}
+        <aside className="space-y-4">
+          {/* Patient Demographics Card */}
           <div className="rounded-xl border border-border bg-surface-2 p-4">
-            <h3 className="text-[15px] font-medium">History</h3>
-            <div className="mt-3 space-y-3">
+            <div className="flex items-center gap-2 mb-3">
+              <UserRound className="size-4 text-fg-muted" />
+              <h3 className="text-[14px] font-semibold text-foreground">
+                Patient summary
+              </h3>
+            </div>
+
+            <div className="space-y-2.5 text-[13px]">
+              <div>
+                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                  Patient ID
+                </span>
+                <p className="font-mono font-medium text-foreground">{patient.patientId}</p>
+              </div>
+
+              <div>
+                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                  Date of birth
+                </span>
+                <p className="text-foreground">
+                  {patient.dateOfBirth} ({ageFromDob(patient.dateOfBirth)} yrs)
+                </p>
+              </div>
+
+              <div>
+                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                  Phone
+                </span>
+                <p className="font-mono text-foreground">{patient.phone}</p>
+              </div>
+
+              <div>
+                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                  Residential address
+                </span>
+                <p className="text-foreground">{patient.address || "Not specified"}</p>
+              </div>
+
+              <div>
+                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                  Emergency contact
+                </span>
+                <p className="text-foreground">{patient.emergencyContact || "None recorded"}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Historical Visits Timeline */}
+          <div className="rounded-xl border border-border bg-surface-2 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="size-4 text-fg-muted" />
+              <h3 className="text-[14px] font-semibold text-foreground">
+                Past visits ({history.length})
+              </h3>
+            </div>
+
+            <div className="space-y-3">
               {history.length === 0 ? (
-                <p className="text-[13px] text-fg-muted">No previous visits.</p>
+                <p className="text-[12px] text-fg-muted">
+                  No previous recorded visits for this patient.
+                </p>
               ) : (
                 history.map((item) => (
-                  <div key={item.id}>
-                    <p className="text-[13px] font-medium">{item.reason}</p>
-                    <p className="font-mono text-[12px] text-fg-muted">
-                      {item.id.toUpperCase()} · {item.createdAt.slice(0, 10)}
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-border bg-surface-1/60 p-2.5 text-[12px]"
+                  >
+                    <div className="flex items-center justify-between text-fg-muted font-mono text-[11px]">
+                      <span>{item.id.toUpperCase()}</span>
+                      <span>{item.createdAt.slice(0, 10)}</span>
+                    </div>
+                    <p className="mt-1 font-medium text-foreground text-[13px]">
+                      {item.reason}
                     </p>
+                    <span className="mt-1 inline-block text-[11px] text-fg-secondary">
+                      Status: {item.status}
+                    </span>
                   </div>
                 ))
               )}
@@ -72,102 +183,119 @@ export default function DoctorVisitPage() {
   );
 }
 
-function VisitSection({
+function SectionAccordion({
   title,
+  icon: Icon,
   badge,
-  defaultOpen,
-  summary,
+  defaultOpen = true,
   children,
 }: {
   title: string;
+  icon: typeof Stethoscope;
   badge?: ReactNode;
-  defaultOpen: boolean;
-  summary?: ReactNode;
+  defaultOpen?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="rounded-xl border border-border bg-surface-2 p-5">
+    <div className="rounded-xl border border-border bg-surface-2 p-4">
       <button
         type="button"
-        className="flex w-full items-center gap-2 text-left"
+        className="flex w-full items-center justify-between text-left"
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setOpen((prev) => !prev)}
       >
-        <ChevronDown
-          className={cn(
-            "size-4 shrink-0 text-fg-muted transition-transform duration-150 ease-out",
-            open ? "rotate-0" : "-rotate-90",
-          )}
-          strokeWidth={1.75}
-        />
-        <h2 className="text-[18px] font-semibold">{title}</h2>
-        {badge ? <span className="ml-auto">{badge}</span> : null}
+        <div className="flex items-center gap-2">
+          <Icon className="size-4 text-clinical-fill" />
+          <h3 className="text-[15px] font-semibold text-foreground">{title}</h3>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {badge}
+          <ChevronDown
+            className={cn(
+              "size-4 text-fg-muted transition-transform duration-150 ease-out",
+              open ? "rotate-0" : "-rotate-90",
+            )}
+          />
+        </div>
       </button>
-      {open ? <div className="mt-4">{children}</div> : summary}
+
+      {open && <div className="mt-4 pt-1 border-t border-border/50">{children}</div>}
     </div>
   );
 }
 
-function ConsultationPanel({
-  visit,
-  patient,
-  badge,
-}: {
-  visit: Visit;
-  patient: Patient;
-  badge: ReturnType<typeof visitBadge>;
-}) {
-  const defaultOpen =
-    visit.status === "registered" || visit.status === "in-consultation";
+function ClinicalNotesSection({ visit }: { visit: Visit }) {
+  const [complaint, setComplaint] = useState(visit.reason);
+  const [findings, setFindings] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [plan, setPlan] = useState("");
 
   return (
-    <VisitSection
-      title="Consultation"
-      defaultOpen={defaultOpen}
-      badge={<StatusBadge role={badge.role}>{badge.label}</StatusBadge>}
-      summary={
-        <div className="mt-2 space-y-1">
-          {patient.allergies.length > 0 ? (
-            <p className="text-[13px] text-danger-text">
-              Allergies: {patient.allergies.join(", ")}
-            </p>
-          ) : null}
-          <p className="text-[13px] text-fg-secondary">{visit.reason}</p>
-        </div>
-      }
+    <SectionAccordion
+      title="Clinical notes & examination"
+      icon={FileText}
+      defaultOpen={true}
     >
-      {patient.allergies.length > 0 ? (
-        <p className="mb-4 text-[13px] text-danger-text">
-          Allergies: {patient.allergies.join(", ")}
-        </p>
-      ) : null}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Blood pressure" id="bp" placeholder="120/80" />
-        <Field label="Temperature" id="temp" placeholder="36.8 °C" />
-        <Field label="Pulse" id="pulse" placeholder="72" />
-        <Field label="Weight" id="weight" placeholder="68 kg" />
-        <Field label="Height" id="height" placeholder="165 cm" />
-        <Field label="SpO2" id="spo2" placeholder="98%" />
+      <div className="space-y-3.5">
+        <div className="grid gap-1.5">
+          <Label htmlFor="chief-complaint" className="text-[13px] font-normal text-fg-secondary">
+            Chief complaint & symptoms
+          </Label>
+          <Input
+            id="chief-complaint"
+            value={complaint}
+            onChange={(e) => setComplaint(e.target.value)}
+            placeholder="Primary reason for visit, onset, severity…"
+          />
+        </div>
+
+        <div className="grid gap-1.5">
+          <Label htmlFor="exam-findings" className="text-[13px] font-normal text-fg-secondary">
+            Physical examination findings
+          </Label>
+          <Textarea
+            id="exam-findings"
+            value={findings}
+            onChange={(e) => setFindings(e.target.value)}
+            placeholder="General appearance, chest auscultation, abdominal palpation, ENT findings…"
+            rows={3}
+          />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="diagnosis" className="text-[13px] font-normal text-fg-secondary">
+              Provisional diagnosis
+            </Label>
+            <Input
+              id="diagnosis"
+              value={diagnosis}
+              onChange={(e) => setDiagnosis(e.target.value)}
+              placeholder="e.g. Acute Upper Respiratory Infection"
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="management-plan" className="text-[13px] font-normal text-fg-secondary">
+              Care plan & follow-up
+            </Label>
+            <Input
+              id="management-plan"
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              placeholder="e.g. Rest, oral fluids, review in 3 days if fever persists"
+            />
+          </div>
+        </div>
       </div>
-      <div className="mt-4 grid gap-1.5">
-        <Label htmlFor="complaint" className="font-normal">
-          Chief complaint
-        </Label>
-        <Input id="complaint" defaultValue={visit.reason} />
-      </div>
-      <div className="mt-3 grid gap-1.5">
-        <Label htmlFor="notes" className="font-normal">
-          Examination notes
-        </Label>
-        <Textarea id="notes" placeholder="Findings, diagnosis, plan…" />
-      </div>
-    </VisitSection>
+    </SectionAccordion>
   );
 }
 
-function LabResultsPanel({
+function LabResultsSection({
   visit,
   requests,
 }: {
@@ -177,54 +305,37 @@ function LabResultsPanel({
   const readyCount = requests.filter(
     (request) => request.status === "result-ready" && request.resultValue,
   ).length;
-  const defaultOpen =
-    visit.status === "awaiting-lab" ||
-    visit.status === "lab-complete" ||
-    readyCount > 0;
 
-  const summary =
-    requests.length === 0
-      ? "No lab requests yet"
-      : readyCount === requests.length
-        ? `${requests.length} ${requests.length === 1 ? "result" : "results"} ready`
-        : `${readyCount} of ${requests.length} results ready`;
+  const allReady = requests.length > 0 && readyCount === requests.length;
 
   return (
-    <VisitSection
-      title="Lab results"
-      defaultOpen={defaultOpen}
+    <SectionAccordion
+      title="Laboratory orders & results"
+      icon={FlaskConical}
+      defaultOpen={requests.length > 0}
       badge={
         requests.length > 0 ? (
-          <StatusBadge role={readyCount === requests.length ? "success" : "warning"}>
-            {readyCount === requests.length ? "Ready" : "Awaiting"}
+          <StatusBadge role={allReady ? "success" : "warning"}>
+            {allReady ? "All results ready" : `${readyCount}/${requests.length} ready`}
           </StatusBadge>
-        ) : undefined
+        ) : (
+          <span className="text-[12px] text-fg-muted">0 ordered</span>
+        )
       }
-      summary={<p className="mt-2 text-[13px] text-fg-secondary">{summary}</p>}
     >
       <DoctorLabResults requests={requests} />
-      <p className="mt-3 text-[13px] text-fg-muted">
-        Prescriptions will appear here from the clinic drug list.
-      </p>
-    </VisitSection>
+    </SectionAccordion>
   );
 }
 
-function Field({
-  label,
-  id,
-  placeholder,
-}: {
-  label: string;
-  id: string;
-  placeholder: string;
-}) {
+function PrescriptionSection({ visitId }: { visitId: string }) {
   return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id} className="font-normal">
-        {label}
-      </Label>
-      <Input id={id} placeholder={placeholder} className="tabular-nums" />
-    </div>
+    <SectionAccordion
+      title="Prescriptions & medications"
+      icon={Pill}
+      defaultOpen={true}
+    >
+      <DoctorPrescriptionPanel visitId={visitId} />
+    </SectionAccordion>
   );
 }

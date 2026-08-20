@@ -13,7 +13,11 @@ export type VisitStatus =
 export type LabStatus = "requested" | "in-progress" | "result-ready";
 export type LabUrgency = "routine" | "urgent";
 export type PaymentStatus = "unpaid" | "partial" | "paid" | "pending-credit";
-export type CatalogType = "consultation" | "lab_test" | "drug";
+export type CatalogType = "consultation" | "lab_test" | "drug" | "procedure";
+export type VisitKind = "consultation" | "procedure";
+export type CourseStatus = "active" | "completed" | "cancelled";
+export type DoseStatus = "scheduled" | "checked-in" | "given" | "missed";
+export type CourseBillingMode = "per-dose" | "package";
 
 export type StaffUser = {
   id: string;
@@ -44,6 +48,9 @@ export type Visit = {
   reason: string;
   waitMinutes: number;
   createdAt: string;
+  kind?: VisitKind;
+  courseId?: string;
+  doseId?: string;
 };
 
 export type LabResultFlag = "normal" | "abnormal";
@@ -84,3 +91,41 @@ export type CatalogItem = {
   price: number;
   active: boolean;
 };
+
+export type TreatmentCourse = {
+  id: string;
+  patientId: string;
+  catalogItemId: string;
+  procedureName: string;
+  totalDoses: number;
+  startDate: string;
+  billingMode: CourseBillingMode;
+  status: CourseStatus;
+  notes: string;
+  createdAt: string;
+  receptionistId: string;
+};
+
+export type CourseDose = {
+  id: string;
+  courseId: string;
+  dayNumber: number;
+  scheduledDate: string;
+  status: DoseStatus;
+  visitId?: string;
+  givenAt?: string;
+  givenBy?: string;
+};
+
+export type Prescription = {
+  id: string;
+  visitId: string;
+  drugId: string;
+  drugName: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  instructions: string;
+  createdAt: string;
+};
+
