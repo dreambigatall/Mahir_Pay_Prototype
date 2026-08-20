@@ -110,7 +110,7 @@ export function DoctorVisitActions({
             )}
           </div>
 
-          <DialogFooter className="pt-3 border-t border-border">
+          <DialogFooter className="pt-3">
             <Button
               variant="outline"
               type="button"

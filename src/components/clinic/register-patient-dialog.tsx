@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { AlertCircle, CalendarClock, Plus, Search, Syringe, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
-import { StartCourseDialog } from "@/components/clinic/start-course-dialog";
+import { StartCourseDialog, StartCourseForm } from "@/components/clinic/start-course-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -73,16 +73,13 @@ export function RegisterPatientDialog() {
           Register patient
         </Button>
       </DialogTrigger>
-      <DialogContent className="flex h-[min(620px,90vh)] w-full sm:max-w-[620px] flex-col gap-4 overflow-hidden p-6">
+      <DialogContent className="flex max-h-[95vh] w-full sm:max-w-[800px] flex-col gap-4 overflow-hidden p-6">
         <DialogHeader>
           <DialogTitle>Register or check in patient</DialogTitle>
-          <DialogDescription>
-            Register walk-ins, returning consults, appointments, or daily injection/vaccination attendance.
-          </DialogDescription>
         </DialogHeader>
 
         {/* Mode Segmented Bar */}
-        <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-surface-1 p-1.5 border border-border/80 sm:grid-cols-4">
+        <div className="flex w-full items-center gap-2 pb-4">
           {modes.map((item) => {
             const Icon = item.icon;
             const active = mode === item.id;
@@ -92,14 +89,14 @@ export function RegisterPatientDialog() {
                 type="button"
                 onClick={() => setMode(item.id)}
                 className={cn(
-                  "flex h-[44px] items-center justify-center gap-2 rounded-lg text-[13px] font-medium transition-all duration-150",
+                  "flex flex-1 h-10 items-center justify-center gap-2 rounded-full px-4 text-[13px] transition-all duration-200 border",
                   active
-                    ? "bg-surface-2 text-foreground shadow-sm border border-border font-semibold"
-                    : "text-fg-secondary hover:text-foreground",
+                    ? "bg-primary text-primary-foreground border-primary font-semibold shadow-sm"
+                    : "bg-surface-1 text-fg-secondary border-border/60 hover:bg-surface-2 hover:text-foreground hover:border-border",
                 )}
               >
-                <Icon className="size-4 shrink-0" strokeWidth={1.75} />
-                <span className="truncate">{item.label}</span>
+                <Icon className="size-4 shrink-0" strokeWidth={active ? 2.5 : 2} />
+                <span>{item.label}</span>
               </button>
             );
           })}
@@ -173,7 +170,7 @@ function NewPatientForm({
 
   return (
     <form
-      className="flex h-full flex-col justify-between"
+      className="flex min-h-0 flex-1 flex-col justify-between"
       onSubmit={(event) => {
         event.preventDefault();
         if (!name.trim() || !dob || !phone.trim()) {
@@ -245,7 +242,7 @@ function NewPatientForm({
                 value={gender}
                 onValueChange={(val) => setGender(val as "F" | "M")}
               >
-                <SelectTrigger className="h-10 w-full bg-surface-1/60 text-[14px]">
+                <SelectTrigger className="!h-10 w-full bg-surface-1/60 text-[14px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -275,7 +272,7 @@ function NewPatientForm({
             <div className="grid gap-1.5">
               <Label className="text-[13px] font-medium text-foreground">Assign doctor *</Label>
               <Select value={doctorId} onValueChange={setDoctorId}>
-                <SelectTrigger className="h-10 w-full bg-surface-1/60 text-[14px]">
+                <SelectTrigger className="!h-10 w-full bg-surface-1/60 text-[14px]">
                   <SelectValue placeholder="Select doctor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -306,9 +303,9 @@ function NewPatientForm({
 
           {/* Drug Allergies */}
           <div className="grid gap-1.5">
-            <div className="flex items-center gap-1 text-danger-text">
+            <div className="flex items-center gap-1 text-fg-secondary">
               <AlertCircle className="size-3.5" />
-              <Label htmlFor="known-allergies" className="text-[13px] font-medium text-danger-text">
+              <Label htmlFor="known-allergies" className="text-[13px] font-medium text-foreground">
                 Known drug allergies (comma separated)
               </Label>
             </div>
@@ -317,13 +314,13 @@ function NewPatientForm({
               value={allergiesText}
               onChange={(e) => setAllergiesText(e.target.value)}
               placeholder="e.g. Penicillin, Sulfa drugs, Aspirin"
-              className="h-10 border-danger-fill/30 bg-danger-bg/20 text-[14px] text-danger-text placeholder:text-danger-text/60"
+              className="h-10 bg-surface-1/60 text-[14px]"
             />
           </div>
         </div>
       </ScrollArea>
 
-      <DialogFooter className="pt-3 border-t border-border">
+      <DialogFooter className="pt-3">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
@@ -387,7 +384,7 @@ function ReturningSearch({
 
         <div className="w-48">
           <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
-            <SelectTrigger className="h-10 text-[13px] bg-surface-1/60">
+            <SelectTrigger className="!h-10 text-[14px] bg-surface-1/60">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -503,6 +500,7 @@ function CourseCheckIn({
   onDone: () => void;
 }) {
   const { courses, doses, patients, checkInDose } = useClinic();
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
 
   const dueRows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -524,8 +522,19 @@ function CourseCheckIn({
       });
   }, [courses, doses, patients, query]);
 
+  if (isCreatingNew) {
+    return (
+      <div className="flex flex-1 flex-col min-h-[650px]">
+        <StartCourseForm 
+          onCancel={() => setIsCreatingNew(false)} 
+          onDone={onDone} 
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="flex h-full flex-col gap-3 min-h-[650px]">
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-muted" />
@@ -537,14 +546,15 @@ function CourseCheckIn({
             className="pl-9 h-10 text-[14px] bg-surface-1/60"
           />
         </div>
-        <StartCourseDialog
-          trigger={
-            <Button type="button" variant="outline" size="sm" className="gap-1">
-              <Syringe className="size-3.5" />
-              New course
-            </Button>
-          }
-        />
+        <Button 
+          type="button" 
+          variant="outline" 
+          className="h-10 gap-1.5 px-4"
+          onClick={() => setIsCreatingNew(true)}
+        >
+          <Syringe className="size-4" />
+          New course
+        </Button>
       </div>
       <ScrollArea className="min-h-0 flex-1">
         {dueRows.length === 0 ? (
