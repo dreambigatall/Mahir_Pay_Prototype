@@ -70,15 +70,9 @@ function QueueCard({ visit, href }: { visit: Visit; href: string }) {
       className="block rounded-xl border border-border bg-surface-2 p-3 transition-colors hover:border-border-strong"
     >
       <div className="flex items-start justify-between gap-2">
-<<<<<<< HEAD
         <div className="flex items-center gap-1.5 min-w-0">
-          <GripVertical className="size-3.5 text-fg-muted shrink-0" />
-          <p className="text-[14px] font-medium text-foreground truncate">{patient.name}</p>
-=======
-        <div className="flex items-center gap-1.5">
-          <GripVertical className="size-3.5 text-primary" />
-          <p className="text-[14px] font-medium text-primary">{patient.name}</p>
->>>>>>> 236a1b0 (¨Color_Update¨)
+          <GripVertical className="size-3.5 text-primary shrink-0" />
+          <p className="text-[14px] font-medium text-primary truncate">{patient.name}</p>
         </div>
         <span className={`mt-1 size-2 shrink-0 rounded-full ${visitDot(visit.status)}`} />
       </div>
@@ -86,24 +80,13 @@ function QueueCard({ visit, href }: { visit: Visit; href: string }) {
       <p className="mt-1 font-mono text-[11px] text-fg-muted">
         {patient.patientId} · {ageFromDob(patient.dateOfBirth)}{patient.gender}
       </p>
-<<<<<<< HEAD
-
-      <p className="mt-2 text-[13px] text-foreground truncate">
+      <p className="mt-2 text-[13px] text-fg-secondary truncate">
         {doctor?.name} {doctor?.room ? `· ${doctor.room}` : ""}
       </p>
-      <p className="text-[12px] text-fg-secondary truncate">{visit.reason}</p>
+      <p className="text-[13px] text-fg-muted truncate">{visit.reason}</p>
       {visit.kind === "procedure" ? (
         <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-clinical-text">
           Injection / vaccine
-=======
-      <p className="mt-2 text-[13px] text-fg-secondary">
-        {doctor?.name} {doctor?.room ? `· ${doctor.room}` : ""}
-      </p>
-      <p className="text-[13px] text-fg-muted">{visit.reason}</p>
-      {visit.status !== "billed" ? (
-        <p className={`text-[12px] ${overSla ? "text-warning-text" : "text-fg-muted"}`}>
-          Waiting {visit.waitMinutes} min
->>>>>>> 236a1b0 (¨Color_Update¨)
         </p>
       ) : null}
 

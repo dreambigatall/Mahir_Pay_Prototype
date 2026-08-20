@@ -54,9 +54,9 @@ export function DoctorVisitActions({
   }
 
   return (
-<<<<<<< HEAD
     <>
       <div className="flex flex-wrap items-center gap-2">
+        <PrescribeMedicineDialog visitId={visitId} doctorId={doctorId} />
         <OrderLabDialog visitId={visitId} doctorId={doctorId} />
         <StartCourseDialog
           patientId={patientId}
@@ -66,6 +66,9 @@ export function DoctorVisitActions({
             </Button>
           }
         />
+        <TreatmentPlanDialog patientName={patientName} />
+        <ScheduleAppointmentDialog patientId={patientId} doctorId={doctorId} />
+        <ReferPatientDialog visitId={visitId} patientId={patientId} doctorId={doctorId} />
 
         <Button
           onClick={() => setCompleteOpen(true)}
@@ -122,23 +125,5 @@ export function DoctorVisitActions({
         </DialogContent>
       </Dialog>
     </>
-=======
-    <div className="flex flex-wrap gap-2">
-      <PrescribeMedicineDialog visitId={visitId} doctorId={doctorId} />
-      <OrderLabDialog visitId={visitId} doctorId={doctorId} />
-      <TreatmentPlanDialog patientName={patientName} />
-      <ScheduleAppointmentDialog patientId={patientId} doctorId={doctorId} />
-      <ReferPatientDialog visitId={visitId} patientId={patientId} doctorId={doctorId} />
-      <Button
-        onClick={() =>
-          toast.success("Visit complete", {
-            description: "Reception would now see this visit as ready for billing.",
-          })
-        }
-      >
-        Complete visit
-      </Button>
-    </div>
->>>>>>> 236a1b0 (¨Color_Update¨)
   );
 }

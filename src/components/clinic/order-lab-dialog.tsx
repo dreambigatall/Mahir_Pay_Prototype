@@ -18,20 +18,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-<<<<<<< HEAD
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { useClinic } from "@/lib/clinic-store";
 import { formatMoney } from "@/lib/format";
-import type { LabUrgency } from "@/lib/types";
-import { cn } from "@/lib/utils";
-=======
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { useClinic } from "@/lib/clinic-store";
-import { formatMoney } from "@/lib/format";
 import type { LabUrgency, CatalogItem } from "@/lib/types";
->>>>>>> 236a1b0 (¨Color_Update¨)
+import { cn } from "@/lib/utils";
 
 export function OrderLabDialog({
   visitId,
@@ -48,8 +40,7 @@ export function OrderLabDialog({
   const [notes, setNotes] = useState("");
   const [activeTab, setActiveTab] = useState("lab");
 
-  const activeLabTests = labTests.filter((test) => test.active);
-  const activeRadiologyTests = radiologyTests.filter((test) => test.active);
+  const activeTests = [...labTests, ...(radiologyTests || [])].filter((test) => test.active);
 
   const pendingIds = useMemo(
     () =>
@@ -74,54 +65,7 @@ export function OrderLabDialog({
     setSelected([]);
     setUrgency("routine");
     setNotes("");
-<<<<<<< HEAD
     setSearch("");
-=======
-    setActiveTab("lab");
-  }
-
-  function renderList(items: CatalogItem[], emptyMessage: string) {
-    if (items.length === 0) {
-      return <p className="text-[13px] text-fg-secondary p-3">{emptyMessage}</p>;
-    }
-    return (
-      <div className="grid max-h-64 gap-2 overflow-y-auto rounded-xl border border-border p-3">
-        {items.map((test) => {
-          const already = pendingIds.has(test.id);
-          const checked = already || selected.includes(test.id);
-          return (
-            <label
-              key={test.id}
-              className="flex items-center gap-2 rounded-md px-1 py-1 text-[14px]"
-            >
-              <Checkbox
-                checked={checked}
-                disabled={already}
-                onCheckedChange={(value) => {
-                  setSelected((current) =>
-                    value === true
-                      ? [...current, test.id]
-                      : current.filter((id) => id !== test.id),
-                  );
-                }}
-              />
-              <span className="flex-1">
-                {test.name}
-                {already ? (
-                  <span className="ml-2 text-[12px] text-fg-muted">
-                    already requested
-                  </span>
-                ) : null}
-              </span>
-              <span className="tabular-nums text-[12px] text-fg-muted">
-                {formatMoney(test.price)}
-              </span>
-            </label>
-          );
-        })}
-      </div>
-    );
->>>>>>> 236a1b0 (¨Color_Update¨)
   }
 
   const selectedTotal = useMemo(() => {
@@ -139,19 +83,14 @@ export function OrderLabDialog({
       }}
     >
       <DialogTrigger asChild>
-<<<<<<< HEAD
         <Button variant="outline" className="gap-1.5">
           <FlaskConical className="size-4" />
-          Order lab test
+          Order lab / imaging
         </Button>
-=======
-        <Button variant="outline">Order lab / imaging</Button>
->>>>>>> 236a1b0 (¨Color_Update¨)
       </DialogTrigger>
       <DialogContent className="flex h-[min(640px,90vh)] w-full sm:max-w-[620px] flex-col gap-4 overflow-hidden p-6">
         <DialogHeader>
-<<<<<<< HEAD
-          <DialogTitle>Order laboratory diagnostics</DialogTitle>
+          <DialogTitle>Order laboratory & imaging diagnostics</DialogTitle>
           <DialogDescription>
             Select diagnostic tests from the active clinic catalog and specify clinical indications.
           </DialogDescription>
@@ -220,7 +159,7 @@ export function OrderLabDialog({
                               }}
                             />
                             <div className="min-w-0">
-                              <span className="text-[14px] font-medium text-foreground block truncate">
+                               <span className="text-[14px] font-medium text-foreground block truncate">
                                 {test.name}
                               </span>
                               {already && (
@@ -316,60 +255,6 @@ export function OrderLabDialog({
         )}
 
         <DialogFooter className="pt-3 border-t border-border">
-=======
-          <DialogTitle>Order investigations</DialogTitle>
-          <DialogDescription>
-            Choose from the clinic catalog for lab and radiology services.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="lab">Laboratory</TabsTrigger>
-              <TabsTrigger value="radiology">Radiology</TabsTrigger>
-            </TabsList>
-            <TabsContent value="lab" className="mt-4">
-              {renderList(activeLabTests, "No active lab tests yet.")}
-            </TabsContent>
-            <TabsContent value="radiology" className="mt-4">
-              {renderList(activeRadiologyTests, "No active radiology services yet.")}
-            </TabsContent>
-          </Tabs>
-          <div className="grid gap-2">
-            <p className="text-[14px]">Urgency</p>
-            <RadioGroup
-              value={urgency}
-              onValueChange={(value) => setUrgency(value as LabUrgency)}
-              className="flex gap-4"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="routine" id="lab-routine" />
-                <Label htmlFor="lab-routine" className="font-normal">
-                  Routine
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="urgent" id="lab-urgent" />
-                <Label htmlFor="lab-urgent" className="font-normal">
-                  Urgent
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="lab-notes" className="font-normal">
-              Clinical notes
-            </Label>
-            <Textarea
-              id="lab-notes"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Reason for the investigations…"
-            />
-          </div>
-        </div>
-        <DialogFooter>
->>>>>>> 236a1b0 (¨Color_Update¨)
           <Button variant="outline" type="button" onClick={() => setOpen(false)}>
             Cancel
           </Button>
@@ -386,25 +271,15 @@ export function OrderLabDialog({
               });
               toast.success(
                 created.length === 1
-<<<<<<< HEAD
                   ? "Laboratory order dispatched"
                   : `${created.length} diagnostic tests ordered`,
                 { description: "The laboratory technician workbench has been updated." },
-=======
-                  ? "Investigation requested"
-                  : `${created.length} investigations requested`,
-                { description: "Reception must approve payment." },
->>>>>>> 236a1b0 (¨Color_Update¨)
               );
               setOpen(false);
               reset();
             }}
           >
-<<<<<<< HEAD
             Dispatch order ({selected.length})
-=======
-            Send request
->>>>>>> 236a1b0 (¨Color_Update¨)
           </Button>
         </DialogFooter>
       </DialogContent>

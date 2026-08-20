@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from "react";
 import { notFound, useParams } from "next/navigation";
-<<<<<<< HEAD
 import {
   AlertTriangle,
   Calendar,
@@ -13,10 +12,7 @@ import {
   Stethoscope,
   UserRound,
 } from "lucide-react";
-=======
-import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
->>>>>>> 236a1b0 (¨Color_Update¨)
 
 import { DoctorLabResults } from "@/components/clinic/doctor-lab-results";
 import { DoctorPrescriptionPanel } from "@/components/clinic/doctor-prescription-panel";
@@ -55,7 +51,6 @@ export default function DoctorVisitPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-<<<<<<< HEAD
         title={`${patient.name} — Consultation`}
         description={`${patient.patientId} · ${ageFromDob(patient.dateOfBirth)} ${patient.gender === "F" ? "Female" : "Male"} · ${doctor?.name ?? "Assigned GP"}`}
         action={
@@ -66,11 +61,6 @@ export default function DoctorVisitPage() {
             patientName={patient.name}
           />
         }
-=======
-        title={`${patient.name} — Visit`}
-        description={`${patient.patientId} · ${ageFromDob(patient.dateOfBirth)}${patient.gender} · ${doctor?.name ?? ""}`}
-        action={<DoctorVisitActions visitId={visit.id} doctorId={visit.doctorId} patientId={patient.id} patientName={patient.name} />}
->>>>>>> 236a1b0 (¨Color_Update¨)
       />
 
       {/* Critical Allergy Alert Banner */}
@@ -91,23 +81,17 @@ export default function DoctorVisitPage() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Main Clinical Consultation Column */}
         <div className="space-y-4">
-<<<<<<< HEAD
           {/* Section 1: Triage & Vitals */}
           <DoctorVitalsCard />
 
           {/* Section 2: Clinical Examination & Diagnosis */}
-          <ClinicalNotesSection visit={visit} />
+          <ClinicalNotesSection visit={visit} updateDiagnosis={updateVisitDiagnosis} />
 
           {/* Section 3: Laboratory Diagnostic Orders & Results */}
           <LabResultsSection visit={visit} requests={labs} />
 
           {/* Section 4: Prescriptions & Pharmacy */}
           <PrescriptionSection visitId={visit.id} />
-=======
-          <ConsultationPanel visit={visit} patient={patient} badge={badge} updateDiagnosis={updateVisitDiagnosis} />
-          <InvestigationsPanel visit={visit} requests={labs} />
-          <PrescriptionsPanel visit={visit} prescriptions={visitPrescriptions} />
->>>>>>> 236a1b0 (¨Color_Update¨)
         </div>
 
         {/* Right Sidebar: Patient Profile & Visit History */}
@@ -246,30 +230,11 @@ function SectionAccordion({
   );
 }
 
-<<<<<<< HEAD
-function ClinicalNotesSection({ visit }: { visit: Visit }) {
+function ClinicalNotesSection({ visit, updateDiagnosis }: { visit: Visit; updateDiagnosis: (visitId: string, diagnosis: string) => void }) {
   const [complaint, setComplaint] = useState(visit.reason);
   const [findings, setFindings] = useState("");
-  const [diagnosis, setDiagnosis] = useState("");
-  const [plan, setPlan] = useState("");
-=======
-function ConsultationPanel({
-  visit,
-  patient,
-  badge,
-  updateDiagnosis,
-}: {
-  visit: Visit;
-  patient: Patient;
-  badge: ReturnType<typeof visitBadge>;
-  updateDiagnosis: (visitId: string, diagnosis: string) => void;
-}) {
   const [diagnosis, setDiagnosis] = useState(visit.diagnosis || "");
-  const [notes, setNotes] = useState("");
-
-  const defaultOpen =
-    visit.status === "registered" || visit.status === "in-consultation";
->>>>>>> 236a1b0 (¨Color_Update¨)
+  const [plan, setPlan] = useState("");
 
   return (
     <SectionAccordion
@@ -329,41 +294,6 @@ function ConsultationPanel({
           </div>
         </div>
       </div>
-<<<<<<< HEAD
-    </SectionAccordion>
-  );
-}
-
-function LabResultsSection({
-=======
-      <div className="mt-4 grid gap-1.5">
-        <Label htmlFor="complaint" className="font-normal">
-          Chief complaint
-        </Label>
-        <Input id="complaint" defaultValue={visit.reason} />
-      </div>
-      <div className="mt-3 grid gap-1.5">
-        <Label htmlFor="diagnosis" className="font-normal">
-          Diagnosis
-        </Label>
-        <Input 
-          id="diagnosis" 
-          placeholder="Enter formal diagnosis..." 
-          value={diagnosis}
-          onChange={(e) => setDiagnosis(e.target.value)}
-        />
-      </div>
-      <div className="mt-3 grid gap-1.5">
-        <Label htmlFor="notes" className="font-normal">
-          Examination notes
-        </Label>
-        <Textarea 
-          id="notes" 
-          placeholder="Findings, plan…" 
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-      </div>
       <div className="mt-4 flex justify-end">
         <Button 
           type="button" 
@@ -375,12 +305,11 @@ function LabResultsSection({
           Save Consultation
         </Button>
       </div>
-    </VisitSection>
+    </SectionAccordion>
   );
 }
 
-function InvestigationsPanel({
->>>>>>> 236a1b0 (¨Color_Update¨)
+function LabResultsSection({
   visit,
   requests,
 }: {
@@ -391,7 +320,6 @@ function InvestigationsPanel({
     (request) => (request.status === "result-ready" || request.status === "reviewed") && request.resultValue,
   ).length;
 
-<<<<<<< HEAD
   const allReady = requests.length > 0 && readyCount === requests.length;
 
   return (
@@ -399,19 +327,6 @@ function InvestigationsPanel({
       title="Laboratory orders & results"
       icon={FlaskConical}
       defaultOpen={requests.length > 0}
-=======
-  const summary =
-    requests.length === 0
-      ? "No investigations requested yet"
-      : readyCount === requests.length
-        ? `${requests.length} ${requests.length === 1 ? "result" : "results"} ready`
-        : `${readyCount} of ${requests.length} results ready`;
-
-  return (
-    <VisitSection
-      title="Investigations"
-      defaultOpen={defaultOpen}
->>>>>>> 236a1b0 (¨Color_Update¨)
       badge={
         requests.length > 0 ? (
           <StatusBadge role={allReady ? "success" : "warning"}>
@@ -423,68 +338,7 @@ function InvestigationsPanel({
       }
     >
       <DoctorLabResults requests={requests} />
-<<<<<<< HEAD
     </SectionAccordion>
-=======
-    </VisitSection>
-  );
-}
-
-function PrescriptionsPanel({
-  visit,
-  prescriptions,
-}: {
-  visit: Visit;
-  prescriptions: Prescription[];
-}) {
-  const defaultOpen = prescriptions.length > 0;
-
-  return (
-    <VisitSection
-      title="Prescriptions"
-      defaultOpen={defaultOpen}
-      badge={
-        prescriptions.length > 0 ? (
-          <StatusBadge role="success">Prescribed</StatusBadge>
-        ) : undefined
-      }
-      summary={
-        <p className="mt-2 text-[13px] text-fg-secondary">
-          {prescriptions.length === 0 ? "No medicines prescribed yet" : `${prescriptions.length} items prescribed`}
-        </p>
-      }
-    >
-      {prescriptions.length === 0 ? (
-        <p className="text-[13px] text-fg-muted">
-          No medicines prescribed. Use the "Prescribe medicine" button to add from catalog.
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {prescriptions.map((rx) => (
-            <div key={rx.id} className="rounded-lg border border-border px-3 py-2">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[14px] font-medium">{rx.drugName}</p>
-                  <p className="mt-0.5 text-[13px] text-fg-secondary">{rx.instructions}</p>
-                </div>
-                <StatusBadge 
-                  role={
-                    rx.status === "dispensed" ? "success" 
-                    : rx.status === "payment-approved" ? "warning" 
-                    : "danger"
-                  }
-                >
-                  {rx.status === "dispensed" ? "Dispensed" 
-                   : rx.status === "payment-approved" ? "Payment Approved" 
-                   : "Awaiting Payment"}
-                </StatusBadge>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </VisitSection>
->>>>>>> 236a1b0 (¨Color_Update¨)
   );
 }
 

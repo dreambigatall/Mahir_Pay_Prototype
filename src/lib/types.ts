@@ -13,15 +13,11 @@ export type VisitStatus =
 export type LabStatus = "requested" | "in-progress" | "result-ready" | "reviewed";
 export type LabUrgency = "routine" | "urgent";
 export type PaymentStatus = "unpaid" | "partial" | "paid" | "pending-credit";
-<<<<<<< HEAD
-export type CatalogType = "consultation" | "lab_test" | "drug" | "procedure";
+export type CatalogType = "consultation" | "lab_test" | "radiology" | "drug" | "procedure";
 export type VisitKind = "consultation" | "procedure";
 export type CourseStatus = "active" | "completed" | "cancelled";
 export type DoseStatus = "scheduled" | "checked-in" | "given" | "missed";
 export type CourseBillingMode = "per-dose" | "package";
-=======
-export type CatalogType = "consultation" | "lab_test" | "radiology" | "drug";
->>>>>>> 236a1b0 (¨Color_Update¨)
 
 export type StaffUser = {
   id: string;
@@ -97,7 +93,6 @@ export type CatalogItem = {
   active: boolean;
 };
 
-<<<<<<< HEAD
 export type TreatmentCourse = {
   id: string;
   patientId: string;
@@ -122,30 +117,26 @@ export type CourseDose = {
   givenAt?: string;
   givenBy?: string;
 };
-=======
+
 export type PrescriptionStatus = "awaiting-payment" | "payment-approved" | "dispensed";
->>>>>>> 236a1b0 (¨Color_Update¨)
 
 export type Prescription = {
   id: string;
   visitId: string;
-<<<<<<< HEAD
-  drugId: string;
-  drugName: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  instructions: string;
-  createdAt: string;
-};
-
-=======
-  doctorId: string;
-  catalogItemId: string;
   drugName: string;
   instructions: string;
-  status: PrescriptionStatus;
   createdAt: string;
+  
+  // From HEAD (Pharmacy flow)
+  drugId?: string;
+  dosage?: string;
+  frequency?: string;
+  duration?: string;
+  
+  // From Color_Update
+  doctorId?: string;
+  catalogItemId?: string;
+  status?: PrescriptionStatus;
 };
 
 export type Appointment = {
@@ -168,4 +159,3 @@ export type Referral = {
   notes: string;
   createdAt: string;
 };
->>>>>>> 236a1b0 (¨Color_Update¨)
