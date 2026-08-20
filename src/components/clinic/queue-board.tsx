@@ -36,7 +36,7 @@ export function QueueBoard({
 
   const scroll = (dir: "left" | "right") => {
     if (scrollRef.current) {
-      const scrollAmount = 406; // width + gap
+      const scrollAmount = 404; // width (400) + gap (4)
       scrollRef.current.scrollBy({ left: dir === "left" ? -scrollAmount : scrollAmount, behavior: "smooth" });
     }
   };
@@ -56,7 +56,7 @@ export function QueueBoard({
       <div 
         ref={scrollRef}
         onScroll={checkScroll}
-        className="flex gap-1.5 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="flex gap-1 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {QUEUE_COLUMNS.map((column) => {
           const cards = visits.filter((visit) =>
