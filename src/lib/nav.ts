@@ -47,7 +47,7 @@ export function navFor(role: Role) {
     case "admin":
       return [
         { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/admin/users", label: "Staff", icon: Users },
+        { href: "/admin/users", label: "User Management", icon: Users },
         { href: "/admin/catalog", label: "Catalog", icon: Receipt },
         { href: "/admin/reports", label: "Reports", icon: BarChart3 },
       ];
