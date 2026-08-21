@@ -47,7 +47,7 @@ export function QueueBoard({
   // Stats calculation
   const stats = useMemo(() => {
     const total = visits.length;
-    const waiting = visits.filter(v => v.status === "triage" || v.status === "waiting-doctor").length;
+    const waiting = visits.filter(v => v.status === "registered").length;
     const readyForBilling = visits.filter(v => v.status === "ready-for-billing").length;
     const closed = visits.filter(v => v.status === "billed").length;
     return { total, waiting, readyForBilling, closed };
@@ -58,7 +58,7 @@ export function QueueBoard({
     let list = visits;
 
     if (filterTab === "waiting") {
-      list = list.filter(v => v.status === "triage" || v.status === "waiting-doctor");
+      list = list.filter(v => v.status === "registered");
     } else if (filterTab === "ready") {
       list = list.filter(v => v.status === "ready-for-billing");
     } else if (filterTab === "closed") {

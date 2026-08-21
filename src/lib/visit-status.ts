@@ -1,5 +1,6 @@
-import type { StatusRole } from "@/components/ui/status-badge";
 import type { LabStatus, VisitStatus } from "@/lib/types";
+
+type ChipVariant = "default" | "secondary" | "outline" | "ghost" | "danger" | "warning" | "success" | "clinical" | "neutral" | "info";
 
 export const QUEUE_COLUMNS = [
   { id: "registered", title: "Checked in", statuses: ["registered"] as VisitStatus[] },
@@ -27,7 +28,7 @@ export const LAB_COLUMNS = [
   { id: "result-ready", title: "Result ready", statuses: ["result-ready"] as LabStatus[] },
 ] as const;
 
-export function visitBadge(status: VisitStatus): { role: StatusRole; label: string } {
+export function visitBadge(status: VisitStatus): { role: ChipVariant; label: string } {
   switch (status) {
     case "registered":
       return { role: "neutral", label: "In queue" };
@@ -65,7 +66,7 @@ export function visitDot(status: VisitStatus) {
   }
 }
 
-export function labBadge(status: LabStatus): { role: StatusRole; label: string } {
+export function labBadge(status: LabStatus): { role: ChipVariant; label: string } {
   switch (status) {
     case "requested":
       return { role: "neutral", label: "Requested" };

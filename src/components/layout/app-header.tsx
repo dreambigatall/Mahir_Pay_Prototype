@@ -70,15 +70,15 @@ export function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-[72px] w-full items-center justify-between gap-6 bg-background px-6 transition-all sm:px-10">
+    <header className="sticky top-0 z-30 flex h-[72px] w-full items-center justify-between gap-6 bg-[#f4eafe] px-6 transition-all sm:px-10">
       {/* Left Section: Single-Baseline Breadcrumb */}
       <div className="flex min-w-0 items-center gap-4">
         <nav aria-label="Breadcrumb" className="flex items-center gap-2.5 min-w-0">
-          <span className="text-[13px] font-medium text-fg-muted truncate">
+          <span className="text-[13px] font-medium text-foreground/80 truncate">
             {clinicName}
           </span>
-          <ChevronRight className="size-3.5 text-fg-muted/60 shrink-0" />
-          <span className="text-[14px] font-semibold text-foreground tracking-tight truncate">
+          <ChevronRight className="size-3.5 text-foreground/60 shrink-0" />
+          <span className="text-[14px] font-bold text-foreground tracking-tight truncate">
             {current?.label ?? "Workspace"}
           </span>
         </nav>

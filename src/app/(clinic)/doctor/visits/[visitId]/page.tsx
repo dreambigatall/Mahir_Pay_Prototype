@@ -48,7 +48,7 @@ export default function DoctorVisitPage() {
 
   const patient = getPatient(visit.patientId);
   const doctor = getStaff(visit.doctorId);
-  if (!patient) notFound();
+  if (!patient || !doctor) notFound();
 
   const badge = visitBadge(visit.status);
   const history = patientHistory(patient.id).filter((item) => item.id !== visit.id);

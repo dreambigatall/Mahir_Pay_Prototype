@@ -30,9 +30,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarProvider className="bg-background">
+    <SidebarProvider className="bg-[#f4eafe]">
       <AppSidebar />
-      <SidebarInset className="bg-transparent overflow-hidden flex flex-col">
+      <SidebarInset className="bg-[#f4eafe] overflow-hidden flex flex-col">
         <AppHeader />
         <main className="flex-1 overflow-auto bg-background rounded-tl-[32px] border-t border-l border-border/60 shadow-sm p-6">
           {children}

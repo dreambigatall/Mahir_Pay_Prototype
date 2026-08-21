@@ -104,10 +104,10 @@ export function DatePicker({
             mode="single"
             selected={dateObj}
             onSelect={handleSelect}
-            initialFocus
-            captionLayout={allowPastYears ? "dropdown-buttons" : "label"}
-            fromYear={allowPastYears ? 1900 : undefined}
-            toYear={allowPastYears ? new Date().getFullYear() + 10 : undefined}
+            autoFocus
+            captionLayout={allowPastYears ? "dropdown" : "label"}
+            startMonth={allowPastYears ? new Date(1900, 0) : undefined}
+            endMonth={allowPastYears ? new Date(new Date().getFullYear() + 10, 11) : undefined}
             className="p-4 [--cell-size:2.25rem]"
           />
         </PopoverContent>
