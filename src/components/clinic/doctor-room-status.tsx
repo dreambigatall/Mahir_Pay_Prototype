@@ -1,7 +1,7 @@
 "use client";
 
 import { Stethoscope, UserRound } from "lucide-react";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import { getPatient, staff } from "@/lib/mock-data";
 import type { Visit } from "@/lib/types";
 
@@ -50,13 +50,13 @@ export function DoctorRoomStatus({ visits }: { visits: Visit[] }) {
                 </div>
 
                 {activeVisit ? (
-                  <StatusBadge role="clinical" className="text-[11px]">
+                  <Chip variant="clinical" className="text-[11px]">
                     In room
-                  </StatusBadge>
+                  </Chip>
                 ) : (
-                  <StatusBadge role="success" className="text-[11px]">
+                  <Chip variant="success" className="text-[11px]">
                     Available
-                  </StatusBadge>
+                  </Chip>
                 )}
               </div>
 

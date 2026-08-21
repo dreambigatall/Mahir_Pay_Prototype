@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import { Syringe } from "lucide-react";
 import { toast } from "sonner";
+import { HeightTransition } from "@/components/ui/height-transition";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -165,88 +167,90 @@ export function StartCourseForm({
       <ScrollArea className="min-h-0 flex-1 pr-3">
         <div className="grid gap-4 pb-2">
           {!patientId ? (
-            <div className="grid gap-2">
-              <div className="pb-2">
-                <Label className="text-[13px] font-medium">Patient *</Label>
-              </div>
+            <HeightTransition>
+              <div className="grid gap-2 relative">
+                <div className="pb-2">
+                  <Label className="text-[13px] font-medium">Patient *</Label>
+                </div>
 
-              {isNewPatient ? (
-                <div className="grid gap-3 pt-1">
-                  <Input
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder="Full name"
-                    required
-                    className="h-10"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
+                {isNewPatient ? (
+                  <div className="grid gap-3 pt-1">
                     <Input
-                      type="date"
-                      value={dob}
-                      onChange={(event) => setDob(event.target.value)}
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="Full name"
                       required
                       className="h-10"
                     />
-                    <Select
-                      value={gender}
-                      onValueChange={(value) => setGender(value as "F" | "M")}
-                    >
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="F">Female</SelectItem>
-                        <SelectItem value="M">Male</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Input
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="Phone"
-                    required
-                    className="h-10 font-mono"
-                  />
-                </div>
-              ) : (
-                <div className="grid gap-2 pt-1">
-                  <div className="relative">
+                    <div className="grid grid-cols-2 gap-3">
+                      <DatePicker
+                        value={dob}
+                        onChange={setDob}
+                        required
+                        allowPastYears
+                        className="h-10"
+                      />
+                      <Select
+                        value={gender}
+                        onValueChange={(value) => setGender(value as "F" | "M")}
+                      >
+                        <SelectTrigger className="h-10 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="F">Female</SelectItem>
+                          <SelectItem value="M">Male</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Input
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Search name, phone, or ID…"
-                      className="h-10"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      placeholder="Phone"
+                      required
+                      className="h-10 font-mono"
                     />
-                    
-                    {matches.length > 0 && (
-                      <div className="absolute top-full left-0 z-50 mt-1 w-full max-h-40 space-y-1 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-md">
-                        {matches.map((patient) => (
-                          <button
-                            key={patient.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedPatientId(patient.id);
-                              setQuery(patient.name); // Optional: fill input with selected name
-                            }}
-                            className={cn(
-                              "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[13px]",
-                              selectedPatientId === patient.id
-                                ? "bg-accent text-accent-foreground"
-                                : "hover:bg-accent/50",
-                            )}
-                          >
-                            <span className="font-medium">{patient.name}</span>
-                            <span className="font-mono text-[11px] text-fg-muted">
-                              {patient.patientId}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="grid gap-2 pt-1">
+                    <div className="relative">
+                      <Input
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder="Search name, phone, or ID…"
+                        className="h-10"
+                      />
+                      
+                      {matches.length > 0 && (
+                        <div className="absolute top-full left-0 z-50 mt-1 w-full max-h-40 space-y-1 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-md">
+                          {matches.map((patient) => (
+                            <button
+                              key={patient.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedPatientId(patient.id);
+                                setQuery(patient.name); // Optional: fill input with selected name
+                              }}
+                              className={cn(
+                                "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[13px]",
+                                selectedPatientId === patient.id
+                                  ? "bg-accent text-accent-foreground"
+                                  : "hover:bg-accent/50",
+                              )}
+                            >
+                              <span className="font-medium">{patient.name}</span>
+                              <span className="font-mono text-[11px] text-fg-muted">
+                                {patient.patientId}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </HeightTransition>
           ) : null}
 
           <div className="grid gap-1.5">
@@ -279,10 +283,9 @@ export function StartCourseForm({
             </div>
             <div className="grid gap-1.5">
               <Label className="text-[13px] font-medium">Start date *</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
+                onChange={setStartDate}
                 className="h-10"
               />
             </div>

@@ -83,8 +83,8 @@ export function OrderLabDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-1.5">
-          <FlaskConical className="size-4" />
+        <Button variant="outline" size="sm" className="gap-1.5 text-[12px] h-8">
+          <FlaskConical className="size-3.5" />
           Order lab / imaging
         </Button>
       </DialogTrigger>
@@ -109,7 +109,7 @@ export function OrderLabDialog({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search diagnostic tests (e.g. Malaria, FBC, Glucose)…"
-                className="h-10 pl-9 pr-8 text-[14px] bg-surface-1/60"
+                className="h-10 pl-9 pr-8 text-[14px] bg-background"
               />
               {search && (
                 <button

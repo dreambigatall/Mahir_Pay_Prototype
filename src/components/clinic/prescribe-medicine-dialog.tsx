@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { Pill } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -44,7 +45,10 @@ export function PrescribeMedicineDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline">Prescribe medicine</Button>
+        <Button variant="outline" size="sm" className="gap-1.5 text-[12px] h-8">
+          <Pill className="size-3.5" />
+          Prescribe medicine
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>

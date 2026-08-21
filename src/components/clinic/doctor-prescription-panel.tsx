@@ -35,6 +35,7 @@ export function DoctorPrescriptionPanel({ visitId }: { visitId: string }) {
   const [frequency, setFrequency] = useState("TDS");
   const [duration, setDuration] = useState("5 days");
   const [instructions, setInstructions] = useState("After meals");
+  const [isAdding, setIsAdding] = useState(false);
 
   function handleAdd() {
     const drug = drugs.find((d) => d.id === selectedDrugId);
@@ -59,139 +60,153 @@ export function DoctorPrescriptionPanel({ visitId }: { visitId: string }) {
 
     setSelectedDrugId("");
     setInstructions("After meals");
+    setIsAdding(false);
   }
 
   return (
     <div className="space-y-4">
       {/* Prescription Add Form */}
-      <div className="rounded-xl border border-border bg-surface-1/60 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Pill className="size-4 text-warning-fill" />
-          <h4 className="text-[14px] font-semibold text-foreground">
-            Prescribe medication
-          </h4>
-        </div>
+      {isAdding ? (
+        <div className="space-y-4 rounded-xl border border-border p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Pill className="size-4 text-warning-fill" />
+            <h4 className="text-[14px] font-medium text-foreground">
+              Prescribe new medication
+            </h4>
+          </div>
 
-        {drugs.length === 0 ? (
-          <p className="text-[13px] text-fg-muted">
-            No active medications in clinic catalog. Ask Admin to add drugs.
-          </p>
-        ) : (
-          <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label className="text-[12px] font-normal text-fg-secondary">
-                Select medication from catalog
-              </Label>
-              <Select value={selectedDrugId} onValueChange={setSelectedDrugId}>
-                <SelectTrigger className="h-9 w-full bg-surface-2 text-[13px]">
-                  <SelectValue placeholder="Choose a drug…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {drugs.map((drug) => (
-                    <SelectItem key={drug.id} value={drug.id}>
-                      <span className="font-medium">{drug.name}</span>
-                      <span className="ml-2 font-mono text-[11px] text-fg-muted">
-                        ({formatMoney(drug.price)})
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-3">
-              <div className="grid gap-1">
-                <Label htmlFor="rx-dosage" className="text-[12px] font-normal text-fg-secondary">
-                  Dosage
-                </Label>
-                <Input
-                  id="rx-dosage"
-                  value={dosage}
-                  onChange={(e) => setDosage(e.target.value)}
-                  placeholder="e.g. 500mg or 1 tab"
-                  className="h-9 bg-surface-2 text-[13px]"
-                />
-              </div>
-
-              <div className="grid gap-1">
+          {drugs.length === 0 ? (
+            <p className="text-[13px] text-fg-muted">
+              No active medications in clinic catalog. Ask Admin to add drugs.
+            </p>
+          ) : (
+            <div className="grid gap-3">
+              <div className="grid gap-1.5">
                 <Label className="text-[12px] font-normal text-fg-secondary">
-                  Frequency
+                  Select medication from catalog
                 </Label>
-                <Select value={frequency} onValueChange={setFrequency}>
-                  <SelectTrigger className="h-9 bg-surface-2 text-[13px]">
-                    <SelectValue />
+                <Select value={selectedDrugId} onValueChange={setSelectedDrugId}>
+                  <SelectTrigger className="h-9 w-full bg-background text-[13px]">
+                    <SelectValue placeholder="Choose a drug…" />
                   </SelectTrigger>
                   <SelectContent>
-                    {frequencyOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
+                    {drugs.map((drug) => (
+                      <SelectItem key={drug.id} value={drug.id}>
+                        <span className="font-medium">{drug.name}</span>
+                        <span className="ml-2 font-mono text-[11px] text-fg-muted">
+                          ({formatMoney(drug.price)})
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="grid gap-1">
-                <Label htmlFor="rx-duration" className="text-[12px] font-normal text-fg-secondary">
-                  Duration
-                </Label>
-                <Input
-                  id="rx-duration"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  placeholder="e.g. 5 days"
-                  className="h-9 bg-surface-2 text-[13px]"
-                />
-              </div>
-            </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="grid gap-1">
+                  <Label htmlFor="rx-dosage" className="text-[12px] font-normal text-fg-secondary">
+                    Dosage
+                  </Label>
+                  <Input
+                    id="rx-dosage"
+                    value={dosage}
+                    onChange={(e) => setDosage(e.target.value)}
+                    placeholder="e.g. 500mg or 1 tab"
+                    className="h-9 bg-background text-[13px]"
+                  />
+                </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex-1 grid gap-1">
-                <Input
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  placeholder="Special instructions (e.g. Take with food, finish course)…"
-                  className="h-9 bg-surface-2 text-[13px]"
-                />
+                <div className="grid gap-1">
+                  <Label className="text-[12px] font-normal text-fg-secondary">
+                    Frequency
+                  </Label>
+                  <Select value={frequency} onValueChange={setFrequency}>
+                    <SelectTrigger className="h-9 bg-background text-[13px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {frequencyOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-1">
+                  <Label htmlFor="rx-duration" className="text-[12px] font-normal text-fg-secondary">
+                    Duration
+                  </Label>
+                  <Input
+                    id="rx-duration"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    placeholder="e.g. 5 days"
+                    className="h-9 bg-background text-[13px]"
+                  />
+                </div>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleAdd}
-                disabled={!selectedDrugId}
-                className="gap-1.5 shrink-0"
-              >
-                <Plus className="size-3.5" />
-                Add to prescription
-              </Button>
+
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 grid gap-1">
+                  <Input
+                    value={instructions}
+                    onChange={(e) => setInstructions(e.target.value)}
+                    placeholder="Special instructions (e.g. Take with food, finish course)…"
+                    className="h-9 bg-background text-[13px]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-2">
+                <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleAdd}
+                  disabled={!selectedDrugId}
+                >
+                  Add to prescription
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      ) : (
+        <Button onClick={() => setIsAdding(true)} className="gap-2">
+          <Plus className="size-4" />
+          Add medication
+        </Button>
+      )}
+
+      <div className="h-px bg-border/40 my-4" />
 
       {/* Active Prescriptions List */}
       <div>
-        <p className="text-[13px] font-medium text-foreground mb-2">
+        <h4 className="text-[14px] font-medium text-foreground mb-3">
           Prescription item list ({visitPrescriptions.length})
-        </p>
+        </h4>
 
         {visitPrescriptions.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-4 text-center text-[13px] text-fg-muted">
+          <div className="text-[13px] text-fg-muted italic">
             No medications prescribed for this visit yet.
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {visitPrescriptions.map((rx) => (
               <div
                 key={rx.id}
-                className="flex items-center justify-between rounded-lg border border-border bg-surface-2 px-3.5 py-2.5"
+                className="group flex items-center justify-between rounded-lg hover:bg-surface-1/50 px-2 py-2 -mx-2 transition-colors"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-[14px] font-medium text-foreground">
                       {rx.drugName}
                     </p>
-                    <span className="rounded bg-surface-1 px-1.5 py-0.5 font-mono text-[11px] text-fg-secondary border border-border">
+                    <span className="text-[12px] text-fg-secondary">
                       {rx.dosage} · {rx.frequency} · {rx.duration}
                     </span>
                   </div>

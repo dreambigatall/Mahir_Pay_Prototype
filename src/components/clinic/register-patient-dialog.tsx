@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import { AlertCircle, CalendarClock, Plus, Search, Syringe, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { HeightTransition } from "@/components/ui/height-transition";
 
 import { StartCourseDialog, StartCourseForm } from "@/components/clinic/start-course-dialog";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -89,7 +91,7 @@ export function RegisterPatientDialog() {
                 type="button"
                 onClick={() => setMode(item.id)}
                 className={cn(
-                  "flex flex-1 h-10 items-center justify-center gap-2 rounded-full px-4 text-[13px] transition-all duration-200 border",
+                  "flex flex-1 h-11 items-center justify-center gap-2 rounded-full px-4 text-[13px] transition-all duration-200 border",
                   active
                     ? "bg-primary text-primary-foreground border-primary font-semibold shadow-sm"
                     : "bg-surface-1 text-fg-secondary border-border/60 hover:bg-surface-2 hover:text-foreground hover:border-border",
@@ -102,7 +104,7 @@ export function RegisterPatientDialog() {
           })}
         </div>
 
-        <div className="min-h-0 flex-1">
+        <HeightTransition>
           {mode === "new" ? (
             <NewPatientForm
               onDone={() => {
@@ -146,7 +148,7 @@ export function RegisterPatientDialog() {
               }}
             />
           ) : null}
-        </div>
+        </HeightTransition>
       </DialogContent>
     </Dialog>
   );
@@ -216,23 +218,24 @@ function NewPatientForm({
               placeholder="e.g. Samuel Kwabena Appiah"
               required
               autoFocus
-              className="h-10 bg-surface-1/60 text-[14px]"
+              className="h-10 bg-background text-[14px]"
             />
           </div>
 
           {/* DOB & Gender */}
-          <div className="grid grid-cols-2 gap-3.5">
+          <fieldset className="grid grid-cols-2 gap-3.5 border-0 p-0 m-0">
+            <legend className="sr-only">Date of Birth and Gender</legend>
             <div className="grid gap-1.5">
               <Label htmlFor="dob" className="text-[13px] font-medium text-foreground">
                 Date of birth *
               </Label>
-              <Input
+              <DatePicker
                 id="dob"
-                type="date"
                 value={dob}
-                onChange={(e) => setDob(e.target.value)}
+                onChange={setDob}
                 required
-                className="h-10 bg-surface-1/60 text-[14px]"
+                allowPastYears
+                className="h-10 bg-background text-[14px]"
               />
             </div>
 
@@ -242,7 +245,7 @@ function NewPatientForm({
                 value={gender}
                 onValueChange={(val) => setGender(val as "F" | "M")}
               >
-                <SelectTrigger className="!h-10 w-full bg-surface-1/60 text-[14px]">
+                <SelectTrigger className="!h-10 w-full bg-background text-[14px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,7 +254,7 @@ function NewPatientForm({
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          </fieldset>
 
           {/* Phone & Doctor */}
           <div className="grid grid-cols-2 gap-3.5">
@@ -265,14 +268,14 @@ function NewPatientForm({
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. 024 123 4567"
                 required
-                className="h-10 bg-surface-1/60 text-[14px] font-mono"
+                className="h-10 bg-background text-[14px] font-mono"
               />
             </div>
 
             <div className="grid gap-1.5">
               <Label className="text-[13px] font-medium text-foreground">Assign doctor *</Label>
               <Select value={doctorId} onValueChange={setDoctorId}>
-                <SelectTrigger className="!h-10 w-full bg-surface-1/60 text-[14px]">
+                <SelectTrigger className="!h-10 w-full bg-background text-[14px]">
                   <SelectValue placeholder="Select doctor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -297,7 +300,7 @@ function NewPatientForm({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="e.g. Fever, persistent cough, general checkup"
-              className="h-10 bg-surface-1/60 text-[14px]"
+              className="h-10 bg-background text-[14px]"
             />
           </div>
 
@@ -314,7 +317,7 @@ function NewPatientForm({
               value={allergiesText}
               onChange={(e) => setAllergiesText(e.target.value)}
               placeholder="e.g. Penicillin, Sulfa drugs, Aspirin"
-              className="h-10 bg-surface-1/60 text-[14px]"
+              className="h-10 bg-background text-[14px]"
             />
           </div>
         </div>
@@ -370,7 +373,7 @@ function ReturningSearch({
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 pr-4">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-muted" />
           <Input
@@ -378,13 +381,13 @@ function ReturningSearch({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Search patient by name, phone, or ID…"
-            className="pl-9 h-10 text-[14px] bg-surface-1/60"
+            className="pl-9 h-10 text-[14px] bg-background"
           />
         </div>
 
         <div className="w-48">
           <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
-            <SelectTrigger className="!h-10 text-[14px] bg-surface-1/60">
+            <SelectTrigger className="!h-10 text-[14px] bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -399,45 +402,49 @@ function ReturningSearch({
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        {matches.length === 0 ? (
-          <div className="py-10 text-center text-[13px] text-fg-muted">
-            No matching patient records found. Use &ldquo;New walk-in patient&rdquo; if first visit.
-          </div>
-        ) : (
-          <div className="space-y-2 pr-2">
-            {matches.map((patient) => (
-              <button
-                key={patient.id}
-                type="button"
-                onClick={() => handleSelect(patient)}
-                className="flex w-full items-center justify-between rounded-xl border border-border bg-surface-1/60 p-3 text-left hover:border-border-strong hover:bg-surface-1 transition-all"
-              >
-                <div>
-                  <p className="text-[14px] font-semibold text-foreground">
-                    {patient.name}
-                  </p>
-                  <p className="font-mono text-[12px] text-fg-muted mt-0.5">
-                    {patient.patientId} · {ageFromDob(patient.dateOfBirth)} yrs ·{" "}
-                    {patient.gender === "F" ? "Female" : "Male"}
-                    {patient.allergies?.length > 0 && (
-                      <span className="ml-2 font-medium text-danger-text">
-                        · Allergies: {patient.allergies.join(", ")}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="font-mono text-[13px] font-medium text-fg-secondary">
-                    {patient.phone}
-                  </span>
-                  <span className="block text-[11px] text-clinical-text font-medium mt-0.5">
-                    Click to check in →
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="pr-4 pb-4">
+          {matches.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-[13px] text-fg-muted">
+              <UserPlus className="size-8 text-fg-muted/40 mb-3" />
+              <p>No matching patient records found.</p>
+              <p>Use &ldquo;New walk-in patient&rdquo; if this is their first visit.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {matches.map((patient) => (
+                <button
+                  key={patient.id}
+                  type="button"
+                  onClick={() => handleSelect(patient)}
+                  className="flex w-full items-center justify-between rounded-xl border border-border bg-background p-3 text-left hover:border-border-strong hover:bg-accent active:scale-[0.99] active:bg-accent/80 transition-all duration-200"
+                >
+                  <div>
+                    <p className="text-[14px] font-semibold text-foreground">
+                      {patient.name}
+                    </p>
+                    <p className="font-mono text-[12px] text-fg-muted mt-0.5">
+                      {patient.patientId} · {ageFromDob(patient.dateOfBirth)} yrs ·{" "}
+                      {patient.gender === "F" ? "Female" : "Male"}
+                      {patient.allergies?.length > 0 && (
+                        <span className="ml-2 font-medium text-danger-text">
+                          · Allergies: {patient.allergies.join(", ")}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="font-mono text-[13px] font-medium text-fg-secondary">
+                      {patient.phone}
+                    </span>
+                    <span className="block text-[12px] text-clinical-text font-medium mt-0.5">
+                      Click to check in →
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </ScrollArea>
     </div>
   );
@@ -448,7 +455,7 @@ function AppointmentList({ onDone }: { onDone: () => void }) {
 
   return (
     <ScrollArea className="h-full">
-      <div className="space-y-2.5 pr-2">
+      <div className="space-y-2.5 pr-4 pb-4">
         {todayAppointments.map((slot) => {
           const patient = clinicPatients.find((item) => item.id === slot.patientId);
           const doctor = getStaff(slot.doctorId);
@@ -457,12 +464,12 @@ function AppointmentList({ onDone }: { onDone: () => void }) {
           return (
             <div
               key={`${slot.patientId}-${slot.time}`}
-              className="flex items-center justify-between rounded-xl border border-border bg-surface-1/60 p-3.5"
+              className="flex items-center justify-between rounded-xl border border-border bg-background p-3.5 hover:bg-accent transition-all"
             >
               <div>
                 <div className="flex items-center gap-2">
                   <p className="text-[15px] font-semibold text-foreground">{patient.name}</p>
-                  <span className="rounded bg-clinical-bg px-2 py-0.5 font-mono text-[11px] font-medium text-clinical-text border border-clinical-fill/20">
+                  <span className="rounded bg-clinical-bg px-2 py-0.5 font-mono text-[12px] font-medium text-clinical-text border border-clinical-fill/20">
                     {slot.time}
                   </span>
                 </div>
@@ -535,7 +542,7 @@ function CourseCheckIn({
 
   return (
     <div className="flex h-full flex-col gap-3 min-h-[650px]">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 pr-4">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-muted" />
           <Input
@@ -543,7 +550,7 @@ function CourseCheckIn({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Find a course by patient or vaccine…"
-            className="pl-9 h-10 text-[14px] bg-surface-1/60"
+            className="pl-9 h-10 text-[14px] bg-background"
           />
         </div>
         <Button 
@@ -557,50 +564,54 @@ function CourseCheckIn({
         </Button>
       </div>
       <ScrollArea className="min-h-0 flex-1">
-        {dueRows.length === 0 ? (
-          <div className="py-10 text-center text-[13px] text-fg-muted">
-            No open injection courses match. Start a new multi-day course instead of a GP visit.
-          </div>
-        ) : (
-          <div className="space-y-2 pr-2">
-            {dueRows.map(({ course, patient, due }) => {
-              if (!patient || !due) return null;
-              return (
-                <div
-                  key={course.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-1/60 p-3"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-[14px] font-semibold">{patient.name}</p>
-                    <p className="text-[12px] text-fg-secondary">
-                      {course.procedureName} · Day {due.dayNumber} of {course.totalDoses}
-                      {due.status === "checked-in" ? " · already checked in" : ""}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    disabled={due.status === "checked-in"}
-                    onClick={() => {
-                      try {
-                        checkInDose(due.id);
-                        toast.success("Checked in for today’s dose", {
-                          description: `${patient.name} is on the injection register, not the GP queue.`,
-                        });
-                        onDone();
-                      } catch (error) {
-                        toast.error(
-                          error instanceof Error ? error.message : "Could not check in.",
-                        );
-                      }
-                    }}
+        <div className="pr-4 pb-4">
+          {dueRows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-[13px] text-fg-muted">
+              <Syringe className="size-8 text-fg-muted/40 mb-3" />
+              <p>No open injection courses match.</p>
+              <p>Start a new multi-day course instead of a GP visit.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {dueRows.map(({ course, patient, due }) => {
+                if (!patient || !due) return null;
+                return (
+                  <div
+                    key={course.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background p-3 hover:bg-accent transition-all"
                   >
-                    Check in
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-semibold">{patient.name}</p>
+                      <p className="text-[12px] text-fg-secondary">
+                        {course.procedureName} · Day {due.dayNumber} of {course.totalDoses}
+                        {due.status === "checked-in" ? " · already checked in" : ""}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={due.status === "checked-in"}
+                      onClick={() => {
+                        try {
+                          checkInDose(due.id);
+                          toast.success("Checked in for today’s dose", {
+                            description: `${patient.name} is on the injection register, not the GP queue.`,
+                          });
+                          onDone();
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error ? error.message : "Could not check in.",
+                          );
+                        }
+                      }}
+                    >
+                      Check in
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </ScrollArea>
     </div>
   );

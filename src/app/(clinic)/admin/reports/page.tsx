@@ -224,15 +224,15 @@ export default function AdminReportsPage() {
               <span className="text-fg-secondary">Consultation ({financialData.shares.consultation}%)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-amber-500" />
+              <span className="size-2.5 rounded-full bg-clinical-fill/80" />
               <span className="text-fg-secondary">Lab ({financialData.shares.lab_test}%)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-emerald-500" />
+              <span className="size-2.5 rounded-full bg-clinical-fill/60" />
               <span className="text-fg-secondary">Pharmacy ({financialData.shares.drug}%)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-sky-500" />
+              <span className="size-2.5 rounded-full bg-clinical-fill/40" />
               <span className="text-fg-secondary">Injections ({financialData.shares.procedure}%)</span>
             </div>
           </div>
@@ -247,17 +247,17 @@ export default function AdminReportsPage() {
           />
           <div
             style={{ width: `${financialData.shares.lab_test}%` }}
-            className="bg-amber-500 transition-all duration-300"
+            className="bg-clinical-fill/80 transition-all duration-300"
             title={`Lab: ${financialData.shares.lab_test}%`}
           />
           <div
             style={{ width: `${financialData.shares.drug}%` }}
-            className="bg-emerald-500 transition-all duration-300"
+            className="bg-clinical-fill/60 transition-all duration-300"
             title={`Pharmacy: ${financialData.shares.drug}%`}
           />
           <div
             style={{ width: `${financialData.shares.procedure}%` }}
-            className="bg-sky-500 transition-all duration-300"
+            className="bg-clinical-fill/40 transition-all duration-300"
             title={`Injections: ${financialData.shares.procedure}%`}
           />
         </div>

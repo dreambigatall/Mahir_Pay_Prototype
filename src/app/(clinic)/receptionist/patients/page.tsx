@@ -7,7 +7,7 @@ import { Search, UserCheck, Users, X } from "lucide-react";
 import { PageHeader } from "@/components/clinic/page-header";
 import { RegisterPatientDialog } from "@/components/clinic/register-patient-dialog";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import {
   Table,
   TableBody,
@@ -147,7 +147,7 @@ export default function PatientsPage() {
                           href={`/receptionist/courses/${activeCourse.id}`}
                           className="group inline-flex flex-col"
                         >
-                          <StatusBadge role="clinical">Injection course</StatusBadge>
+                          <Chip variant="clinical">Injection course</Chip>
                           <span className="text-[11px] text-fg-muted mt-0.5 group-hover:underline">
                             {activeCourse.procedureName}
                           </span>
@@ -163,7 +163,7 @@ export default function PatientsPage() {
                           }
                           className="group inline-flex flex-col"
                         >
-                          <StatusBadge role={badge.role}>{badge.label}</StatusBadge>
+                          <Chip variant={badge.role}>{badge.label}</Chip>
                           {assignedDoctor && (
                             <span className="text-[11px] text-fg-muted mt-0.5 group-hover:underline">
                               {assignedDoctor.name}

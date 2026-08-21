@@ -43,7 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import {
   Table,
   TableBody,
@@ -521,15 +521,15 @@ function Badges() {
       description="Pills use bg + text from the same role. Never mix roles in one pill. Always include a text label."
     >
       <div className="flex flex-wrap gap-2">
-        <StatusBadge role="success">Normal</StatusBadge>
-        <StatusBadge role="danger">High</StatusBadge>
-        <StatusBadge role="warning">Pending</StatusBadge>
-        <StatusBadge role="success">Paid</StatusBadge>
-        <StatusBadge role="danger">Overdue</StatusBadge>
-        <StatusBadge role="warning">Partial</StatusBadge>
-        <StatusBadge role="clinical">In consultation</StatusBadge>
-        <StatusBadge role="neutral">In queue</StatusBadge>
-        <StatusBadge role="info">Audit</StatusBadge>
+        <Chip variant="success">Normal</Chip>
+        <Chip variant="danger">High</Chip>
+        <Chip variant="warning">Pending</Chip>
+        <Chip variant="success">Paid</Chip>
+        <Chip variant="danger">Overdue</Chip>
+        <Chip variant="warning">Partial</Chip>
+        <Chip variant="clinical">In consultation</Chip>
+        <Chip variant="neutral">In queue</Chip>
+        <Chip variant="info">Audit</Chip>
       </div>
       <div className="flex items-center gap-4 text-[13px] text-fg-secondary">
         <span className="inline-flex items-center gap-2">
@@ -708,7 +708,7 @@ function Tables() {
                 V-1007
               </TableCell>
               <TableCell>
-                <StatusBadge role="clinical">In consultation</StatusBadge>
+                <Chip variant="clinical">In consultation</Chip>
               </TableCell>
               <TableCell className="text-right tabular-nums">—</TableCell>
             </TableRow>
@@ -718,7 +718,7 @@ function Tables() {
                 V-1004
               </TableCell>
               <TableCell>
-                <StatusBadge role="warning">Ready for billing</StatusBadge>
+                <Chip variant="warning">Ready for billing</Chip>
               </TableCell>
               <TableCell className="text-right tabular-nums">GHS 240.00</TableCell>
             </TableRow>
@@ -728,7 +728,7 @@ function Tables() {
                 V-0998
               </TableCell>
               <TableCell>
-                <StatusBadge role="success">Paid</StatusBadge>
+                <Chip variant="success">Paid</Chip>
               </TableCell>
               <TableCell className="text-right tabular-nums">GHS 185.00</TableCell>
             </TableRow>

@@ -89,7 +89,7 @@ export function EditCatalogItemDialog({
               value={type}
               onValueChange={(val) => setType(val as CatalogType)}
             >
-              <SelectTrigger className="h-10 w-full bg-surface-1/60 text-[14px]">
+              <SelectTrigger className="h-10 w-full bg-background text-[14px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -111,7 +111,7 @@ export function EditCatalogItemDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="h-10 bg-surface-1/60 text-[14px]"
+              className="h-10 bg-background text-[14px]"
             />
           </div>
 
@@ -127,7 +127,7 @@ export function EditCatalogItemDialog({
               step="0.01"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="h-10 bg-surface-1/60 text-[14px] font-mono tabular-nums"
+              className="h-10 bg-background text-[14px] font-mono tabular-nums"
               required
             />
           </div>

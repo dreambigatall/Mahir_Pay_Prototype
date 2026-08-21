@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { CourseDoseGrid } from "@/components/clinic/course-dose-grid";
 import { PageHeader } from "@/components/clinic/page-header";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import { dosesForCourse, givenCount, isDoseOverdue } from "@/lib/courses";
 import { useClinic } from "@/lib/clinic-store";
 import { CLINIC_TODAY, formatMoney, formatShortDate } from "@/lib/format";
@@ -88,11 +88,11 @@ export default function CourseDetailPage() {
         title={patient.name}
         description={`${patient.patientId} · ${course.procedureName}`}
         action={
-          <StatusBadge role={course.status === "completed" ? "success" : "clinical"}>
+          <Chip variant={course.status === "completed" ? "success" : "clinical"}>
             {course.status === "completed"
               ? "Completed"
               : `${givenCount(courseDoses)} / ${course.totalDoses} given`}
-          </StatusBadge>
+          </Chip>
         }
       />
 
@@ -124,8 +124,7 @@ export default function CourseDetailPage() {
                 {isDoseOverdue(selected) ? " · Overdue" : ""}
               </p>
             </div>
-            <StatusBadge
-              role={
+            <Chip variant={
                 selected.status === "given"
                   ? "success"
                   : selected.status === "missed"
@@ -142,7 +141,7 @@ export default function CourseDetailPage() {
                   : selected.status === "checked-in"
                     ? "Checked in"
                     : "Not yet"}
-            </StatusBadge>
+            </Chip>
           </div>
 
           {selected.givenAt ? (

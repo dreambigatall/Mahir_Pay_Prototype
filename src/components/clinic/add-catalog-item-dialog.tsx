@@ -190,7 +190,7 @@ export function AddCatalogItemDialog({
               placeholder={currentOption.placeholder}
               required
               autoFocus
-              className="h-10 bg-surface-1/60 text-[14px]"
+              className="h-10 bg-background text-[14px]"
             />
           </div>
 
@@ -207,7 +207,7 @@ export function AddCatalogItemDialog({
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
-              className="h-10 bg-surface-1/60 text-[14px] font-mono tabular-nums"
+              className="h-10 bg-background text-[14px] font-mono tabular-nums"
               required
             />
           </div>

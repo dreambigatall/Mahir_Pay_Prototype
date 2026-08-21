@@ -5,12 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { StartCourseDialog } from "@/components/clinic/start-course-dialog";
-import { OrderLabDialog } from "@/components/clinic/order-lab-dialog";
-import { PrescribeMedicineDialog } from "@/components/clinic/prescribe-medicine-dialog";
-import { ScheduleAppointmentDialog } from "@/components/clinic/schedule-appointment-dialog";
 import { ReferPatientDialog } from "@/components/clinic/refer-patient-dialog";
-import { TreatmentPlanDialog } from "@/components/clinic/treatment-plan-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -56,18 +51,6 @@ export function DoctorVisitActions({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <PrescribeMedicineDialog visitId={visitId} doctorId={doctorId} />
-        <OrderLabDialog visitId={visitId} doctorId={doctorId} />
-        <StartCourseDialog
-          patientId={patientId}
-          trigger={
-            <Button variant="outline" className="gap-1.5">
-              Start injection course
-            </Button>
-          }
-        />
-        <TreatmentPlanDialog patientName={patientName} />
-        <ScheduleAppointmentDialog patientId={patientId} doctorId={doctorId} />
         <ReferPatientDialog visitId={visitId} patientId={patientId} doctorId={doctorId} />
 
         <Button

@@ -7,7 +7,7 @@ import { Search, UserCheck, Users, X } from "lucide-react";
 import { PageHeader } from "@/components/clinic/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import {
   Table,
   TableBody,
@@ -145,7 +145,7 @@ export default function DoctorPatientsPage() {
                     </TableCell>
 
                     <TableCell className="px-4 py-2.5 text-left">
-                      <StatusBadge role={badge.role}>{badge.label}</StatusBadge>
+                      <Chip variant={badge.role}>{badge.label}</Chip>
                     </TableCell>
 
                     <TableCell className="px-4 py-2.5 text-right">

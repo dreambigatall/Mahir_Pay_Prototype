@@ -19,16 +19,16 @@ import { EmptyState } from "@/components/clinic/empty-state";
 import { PageHeader } from "@/components/clinic/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { useClinic } from "@/lib/clinic-store";
 import { formatMoney } from "@/lib/format";
 import type { CatalogItem, CatalogType } from "@/lib/types";
@@ -162,35 +162,22 @@ export default function AdminCatalogPage() {
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Category Tabs */}
-        <Tabs
-          value={tab}
-          onValueChange={(val) => setTab(val as FilterTab)}
-          className="w-full sm:w-auto"
-        >
-          <TabsList className="h-9 bg-surface-1 p-1">
-            <TabsTrigger value="all" className="text-[13px]">
-              All ({catalog.length})
-            </TabsTrigger>
-            <TabsTrigger value="lab_test" className="text-[13px]">
-              Lab tests ({catalog.filter((i) => i.type === "lab_test").length})
-            </TabsTrigger>
-            <TabsTrigger value="drug" className="text-[13px]">
-              Medications ({catalog.filter((i) => i.type === "drug").length})
-            </TabsTrigger>
-            <TabsTrigger value="consultation" className="text-[13px]">
-              Consultations ({catalog.filter((i) => i.type === "consultation").length})
-            </TabsTrigger>
-            <TabsTrigger value="procedure" className="text-[13px]">
-              Injections ({catalog.filter((i) => i.type === "procedure").length})
-            </TabsTrigger>
+        {/* Category Dropdown */}
+        <Select value={tab} onValueChange={(val) => setTab(val as FilterTab)}>
+          <SelectTrigger className="w-full sm:w-[200px] h-9 bg-background">
+            <SelectValue placeholder="Filter category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All ({catalog.length})</SelectItem>
+            <SelectItem value="lab_test">Lab tests ({catalog.filter((i) => i.type === "lab_test").length})</SelectItem>
+            <SelectItem value="drug">Medications ({catalog.filter((i) => i.type === "drug").length})</SelectItem>
+            <SelectItem value="consultation">Consultations ({catalog.filter((i) => i.type === "consultation").length})</SelectItem>
+            <SelectItem value="procedure">Injections ({catalog.filter((i) => i.type === "procedure").length})</SelectItem>
             {stats.inactiveCount > 0 && (
-              <TabsTrigger value="inactive" className="text-[13px]">
-                Inactive ({stats.inactiveCount})
-              </TabsTrigger>
+              <SelectItem value="inactive">Inactive ({stats.inactiveCount})</SelectItem>
             )}
-          </TabsList>
-        </Tabs>
+          </SelectContent>
+        </Select>
 
         {/* Real-time Search Input */}
         <div className="relative w-full sm:w-64">
@@ -281,10 +268,10 @@ export default function AdminCatalogPage() {
 
                     {/* Category Pill */}
                     <TableCell className="px-4 py-2.5 text-left">
-                      <StatusBadge role={badge.role} className="gap-1 font-normal">
+                      <Chip variant={badge.role} className="gap-1 font-normal">
                         <badge.icon className="size-3" />
                         {badge.label}
-                      </StatusBadge>
+                      </Chip>
                     </TableCell>
 
                     {/* Price */}
@@ -295,9 +282,9 @@ export default function AdminCatalogPage() {
                     {/* Active/Inactive Status */}
                     <TableCell className="px-4 py-2.5 text-left">
                       {item.active ? (
-                        <StatusBadge role="success">Active</StatusBadge>
+                        <Chip variant="success">Active</Chip>
                       ) : (
-                        <StatusBadge role="neutral">Inactive</StatusBadge>
+                        <Chip variant="neutral">Inactive</Chip>
                       )}
                     </TableCell>
 

@@ -30,11 +30,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="bg-background">
       <AppSidebar />
-      <SidebarInset className="overflow-hidden">
+      <SidebarInset className="bg-transparent overflow-hidden flex flex-col">
         <AppHeader />
-        <div className="flex-1 overflow-auto px-6 py-6">{children}</div>
+        <main className="flex-1 overflow-auto bg-background rounded-tl-[32px] border-t border-l border-border/60 shadow-sm p-6">
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

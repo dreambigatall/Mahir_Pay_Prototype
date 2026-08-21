@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/clinic/page-header";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import { ageFromDob } from "@/lib/format";
 import { getPatient, getStaff, getVisit } from "@/lib/mock-data";
 import { visitBadge } from "@/lib/visit-status";
@@ -31,7 +31,7 @@ export default async function ReceptionistVisitPage({
       <div className="rounded-xl border border-border bg-surface-2 p-5">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[15px] font-medium">{visit.reason}</p>
-          <StatusBadge role={badge.role}>{badge.label}</StatusBadge>
+          <Chip variant={badge.role}>{badge.label}</Chip>
         </div>
         <dl className="mt-4 grid gap-3 text-[14px] sm:grid-cols-2">
           <div>

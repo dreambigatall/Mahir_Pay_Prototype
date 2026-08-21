@@ -5,16 +5,16 @@ import { Search, UserCheck, Users, X } from "lucide-react";
 
 import { PageHeader } from "@/components/clinic/page-header";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { staff } from "@/lib/mock-data";
 import { roleLabel } from "@/lib/nav";
 import type { Role } from "@/lib/types";
@@ -62,29 +62,18 @@ export default function AdminUsersPage() {
 
       {/* Filter Tabs and Search Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs
-          value={roleFilter}
-          onValueChange={setRoleFilter}
-          className="w-full sm:w-auto"
-        >
-          <TabsList className="h-9 bg-surface-1 p-1">
-            <TabsTrigger value="all" className="text-[13px]">
-              All ({counts.all})
-            </TabsTrigger>
-            <TabsTrigger value="doctor" className="text-[13px]">
-              Doctors ({counts.doctor})
-            </TabsTrigger>
-            <TabsTrigger value="receptionist" className="text-[13px]">
-              Reception ({counts.receptionist})
-            </TabsTrigger>
-            <TabsTrigger value="lab" className="text-[13px]">
-              Lab ({counts.lab})
-            </TabsTrigger>
-            <TabsTrigger value="admin" className="text-[13px]">
-              Admin ({counts.admin})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-full sm:w-[180px] h-9 bg-background">
+            <SelectValue placeholder="Filter by role" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All ({counts.all})</SelectItem>
+            <SelectItem value="doctor">Doctors ({counts.doctor})</SelectItem>
+            <SelectItem value="receptionist">Reception ({counts.receptionist})</SelectItem>
+            <SelectItem value="lab">Lab ({counts.lab})</SelectItem>
+            <SelectItem value="admin">Admin ({counts.admin})</SelectItem>
+          </SelectContent>
+        </Select>
 
         <div className="relative w-full sm:w-64">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-fg-muted" />
@@ -144,8 +133,7 @@ export default function AdminUsersPage() {
                   </TableCell>
 
                   <TableCell className="px-4 py-2.5 text-left">
-                    <StatusBadge
-                      role={
+                    <Chip variant={
                         person.role === "doctor"
                           ? "clinical"
                           : person.role === "admin"
@@ -156,7 +144,7 @@ export default function AdminUsersPage() {
                       }
                     >
                       {roleLabel[person.role]}
-                    </StatusBadge>
+                    </Chip>
                   </TableCell>
 
                   <TableCell className="px-4 py-2.5 text-left text-[13px] text-foreground">

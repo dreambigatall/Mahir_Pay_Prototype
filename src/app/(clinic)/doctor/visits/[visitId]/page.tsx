@@ -9,7 +9,9 @@ import {
   FileText,
   FlaskConical,
   Pill,
+  Search,
   Stethoscope,
+  Syringe,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,12 +19,17 @@ import { toast } from "sonner";
 import { DoctorLabResults } from "@/components/clinic/doctor-lab-results";
 import { DoctorPrescriptionPanel } from "@/components/clinic/doctor-prescription-panel";
 import { DoctorVitalsCard } from "@/components/clinic/doctor-vitals-card";
+import { OrderLabDialog } from "@/components/clinic/order-lab-dialog";
+import { ScheduleAppointmentDialog } from "@/components/clinic/schedule-appointment-dialog";
+import { StartCourseDialog } from "@/components/clinic/start-course-dialog";
+import { TreatmentPlanDialog } from "@/components/clinic/treatment-plan-dialog";
 import { DoctorVisitActions } from "@/components/clinic/doctor-visit-actions";
 import { PageHeader } from "@/components/clinic/page-header";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useClinic } from "@/lib/clinic-store";
 import { ageFromDob } from "@/lib/format";
@@ -63,116 +70,153 @@ export default function DoctorVisitPage() {
         }
       />
 
-      {/* Critical Allergy Alert Banner */}
-      {patient.allergies.length > 0 && (
-        <div className="flex items-center gap-3 rounded-xl border border-danger-fill/30 bg-danger-bg p-3.5 text-danger-text">
-          <AlertTriangle className="size-5 shrink-0" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold">
-              Known Drug Allergies: {patient.allergies.join(", ")}
-            </p>
-            <p className="text-[12px] opacity-90">
-              Verify contraindications before prescribing medications or administering injectables.
-            </p>
-          </div>
-        </div>
-      )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Main Clinical Consultation Column */}
-        <div className="space-y-4">
-          {/* Section 1: Triage & Vitals */}
-          <DoctorVitalsCard />
+        <div className="min-w-0">
+          <Tabs defaultValue="consultation" className="w-full">
+            <TabsList className="mb-6 flex flex-wrap w-fit bg-transparent gap-2 h-auto p-0 border-0">
+              <TabsTrigger 
+                value="consultation"
+                className="group rounded-full px-5 py-2 h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm bg-surface-1 hover:bg-surface-2 text-fg-secondary data-[state=active]:border-primary border border-transparent transition-all"
+              >
+                Consultation
+              </TabsTrigger>
+              <TabsTrigger 
+                value="labs"
+                className="group rounded-full px-5 py-2 h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm bg-surface-1 hover:bg-surface-2 text-fg-secondary data-[state=active]:border-primary border border-transparent transition-all"
+              >
+                Labs
+                {labs.length > 0 && (
+                  <span className="ml-2 inline-flex size-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary group-data-[state=active]:bg-background/20 group-data-[state=active]:text-primary-foreground">
+                    {labs.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="prescriptions"
+                className="group rounded-full px-5 py-2 h-9 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm bg-surface-1 hover:bg-surface-2 text-fg-secondary data-[state=active]:border-primary border border-transparent transition-all"
+              >
+                Rx
+                {visitPrescriptions.length > 0 && (
+                  <span className="ml-2 inline-flex size-5 items-center justify-center rounded-full bg-warning-bg text-[10px] font-bold text-warning-text group-data-[state=active]:bg-background/20 group-data-[state=active]:text-primary-foreground">
+                    {visitPrescriptions.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Section 2: Clinical Examination & Diagnosis */}
-          <ClinicalNotesSection visit={visit} updateDiagnosis={updateVisitDiagnosis} />
+            <TabsContent value="consultation" className="grid gap-10 xl:grid-cols-2 focus-visible:outline-none focus-visible:ring-0 mt-0 items-start">
+              {/* Section 1: Triage & Vitals */}
+              <div className="xl:border-r xl:border-border/50 xl:pr-10">
+                <DoctorVitalsCard />
+                <div className="mt-6">
+                  <Chip variant="ghost" className="w-full justify-start items-start whitespace-normal text-left px-3 py-2.5 leading-relaxed rounded-xl bg-orange-500/10 text-orange-600 hover:bg-orange-500/15">
+                    <div>
+                      <strong className="block text-[13px] mb-0.5">Known Drug Allergies: Penicillin</strong>
+                      <span className="text-[12px] opacity-90">Verify contraindications before prescribing medications or administering injectables.</span>
+                    </div>
+                  </Chip>
+                </div>
+              </div>
 
-          {/* Section 3: Laboratory Diagnostic Orders & Results */}
-          <LabResultsSection visit={visit} requests={labs} />
+              {/* Section 2: Clinical Examination & Diagnosis */}
+              <div>
+                <ClinicalNotesSection visit={visit} updateDiagnosis={updateVisitDiagnosis} patientId={patient.id} doctorId={doctor.id} />
+              </div>
+            </TabsContent>
 
-          {/* Section 4: Prescriptions & Pharmacy */}
-          <PrescriptionSection visitId={visit.id} />
+            <TabsContent value="labs" className="focus-visible:outline-none focus-visible:ring-0 mt-0">
+              {/* Section 3: Laboratory Diagnostic Orders & Results */}
+              <LabResultsSection visit={visit} requests={labs} doctorId={doctor.id} />
+            </TabsContent>
+
+            <TabsContent value="prescriptions" className="focus-visible:outline-none focus-visible:ring-0 mt-0">
+              {/* Section 4: Prescriptions & Pharmacy */}
+              <PrescriptionSection visitId={visit.id} doctorId={doctor.id} patientId={patient.id} patientName={patient.name} />
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Right Sidebar: Patient Profile & Visit History */}
-        <aside className="space-y-4">
+        <aside className="space-y-8 lg:border-l lg:border-border/50 lg:pl-6">
           {/* Patient Demographics Card */}
-          <div className="rounded-xl border border-border bg-surface-2 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <UserRound className="size-4 text-fg-muted" />
-              <h3 className="text-[14px] font-semibold text-foreground">
-                Patient summary
-              </h3>
+          <div>
+            <div className="flex items-center gap-2 mb-4 text-foreground">
+              <UserRound className="size-4 text-clinical-fill" />
+              <h3 className="text-[14px] font-semibold">Patient summary</h3>
             </div>
 
-            <div className="space-y-2.5 text-[13px]">
+            <div className="space-y-3.5 text-[13px]">
               <div>
-                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                <span className="text-[11px] font-medium text-fg-muted uppercase tracking-wider">
                   Patient ID
                 </span>
-                <p className="font-mono font-medium text-foreground">{patient.patientId}</p>
+                <p className="font-mono font-medium text-foreground mt-0.5">{patient.patientId}</p>
               </div>
 
               <div>
-                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                <span className="text-[11px] font-medium text-fg-muted uppercase tracking-wider">
                   Date of birth
                 </span>
-                <p className="text-foreground">
+                <p className="text-foreground mt-0.5">
                   {patient.dateOfBirth} ({ageFromDob(patient.dateOfBirth)} yrs)
                 </p>
               </div>
 
               <div>
-                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                <span className="text-[11px] font-medium text-fg-muted uppercase tracking-wider">
                   Phone
                 </span>
-                <p className="font-mono text-foreground">{patient.phone}</p>
+                <p className="font-mono text-foreground mt-0.5">{patient.phone}</p>
               </div>
 
               <div>
-                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                <span className="text-[11px] font-medium text-fg-muted uppercase tracking-wider">
                   Residential address
                 </span>
-                <p className="text-foreground">{patient.address || "Not specified"}</p>
+                <p className="text-foreground mt-0.5">{patient.address || "Not specified"}</p>
               </div>
 
               <div>
-                <span className="text-[11px] font-medium text-fg-muted uppercase">
+                <span className="text-[11px] font-medium text-fg-muted uppercase tracking-wider">
                   Emergency contact
                 </span>
-                <p className="text-foreground">{patient.emergencyContact || "None recorded"}</p>
+                <p className="text-foreground mt-0.5">{patient.emergencyContact || "None recorded"}</p>
               </div>
             </div>
           </div>
 
+          <div className="h-px bg-border/40" />
+
           {/* Historical Visits Timeline */}
-          <div className="rounded-xl border border-border bg-surface-2 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="size-4 text-fg-muted" />
-              <h3 className="text-[14px] font-semibold text-foreground">
+          <div>
+            <div className="flex items-center gap-2 mb-4 text-foreground">
+              <Calendar className="size-4 text-clinical-fill" />
+              <h3 className="text-[14px] font-semibold">
                 Past visits ({history.length})
               </h3>
             </div>
 
             <div className="space-y-3">
               {history.length === 0 ? (
-                <p className="text-[12px] text-fg-muted">
+                <p className="text-[13px] text-fg-muted">
                   No previous recorded visits for this patient.
                 </p>
               ) : (
                 history.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-lg border border-border bg-surface-1/60 p-2.5 text-[12px]"
+                    className="flex flex-col gap-1 text-[13px]"
                   >
                     <div className="flex items-center justify-between text-fg-muted font-mono text-[11px]">
                       <span>{item.id.toUpperCase()}</span>
                       <span>{item.createdAt.slice(0, 10)}</span>
                     </div>
-                    <p className="mt-1 font-medium text-foreground text-[13px]">
+                    <p className="font-medium text-foreground">
                       {item.reason}
                     </p>
-                    <span className="mt-1 inline-block text-[11px] text-fg-secondary">
+                    <span className="inline-block text-[12px] text-fg-secondary">
                       Status: {item.status}
                     </span>
                   </div>
@@ -186,65 +230,52 @@ export default function DoctorVisitPage() {
   );
 }
 
-function SectionAccordion({
+function SectionHeader({
   title,
   icon: Icon,
   badge,
-  defaultOpen = true,
-  children,
 }: {
   title: string;
   icon: typeof Stethoscope;
   badge?: ReactNode;
-  defaultOpen?: boolean;
-  children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
-
   return (
-    <div className="rounded-xl border border-border bg-surface-2 p-4">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between text-left"
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <div className="flex items-center gap-2">
-          <Icon className="size-4 text-clinical-fill" />
-          <h3 className="text-[15px] font-semibold text-foreground">{title}</h3>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {badge}
-          <ChevronDown
-            className={cn(
-              "size-4 text-fg-muted transition-transform duration-150 ease-out",
-              open ? "rotate-0" : "-rotate-90",
-            )}
-          />
-        </div>
-      </button>
-
-      {open && <div className="mt-4 pt-1 border-t border-border/50">{children}</div>}
+    <div className="flex items-center justify-between pb-4 border-b border-border/50 mb-4">
+      <div className="flex items-center gap-2.5">
+        <Icon className="size-5 text-clinical-fill" />
+        <h2 className="text-[16px] font-semibold text-foreground tracking-tight">{title}</h2>
+      </div>
+      {badge && <div>{badge}</div>}
     </div>
   );
 }
 
-function ClinicalNotesSection({ visit, updateDiagnosis }: { visit: Visit; updateDiagnosis: (visitId: string, diagnosis: string) => void }) {
+function ClinicalNotesSection({ 
+  visit, 
+  updateDiagnosis,
+  patientId,
+  doctorId 
+}: { 
+  visit: Visit; 
+  updateDiagnosis: (visitId: string, diagnosis: string) => void;
+  patientId: string;
+  doctorId: string;
+}) {
   const [complaint, setComplaint] = useState(visit.reason);
   const [findings, setFindings] = useState("");
   const [diagnosis, setDiagnosis] = useState(visit.diagnosis || "");
   const [plan, setPlan] = useState("");
 
   return (
-    <SectionAccordion
-      title="Clinical notes & examination"
-      icon={FileText}
-      defaultOpen={true}
-    >
-      <div className="space-y-3.5">
+    <section>
+      <SectionHeader 
+        title="Clinical notes & examination" 
+        icon={FileText} 
+        badge={<ScheduleAppointmentDialog patientId={patientId} doctorId={doctorId} />}
+      />
+      <div className="space-y-4">
         <div className="grid gap-1.5">
-          <Label htmlFor="chief-complaint" className="text-[13px] font-normal text-fg-secondary">
+          <Label htmlFor="chief-complaint" className="text-[13px] font-medium text-foreground">
             Chief complaint & symptoms
           </Label>
           <Input
@@ -252,11 +283,12 @@ function ClinicalNotesSection({ visit, updateDiagnosis }: { visit: Visit; update
             value={complaint}
             onChange={(e) => setComplaint(e.target.value)}
             placeholder="Primary reason for visit, onset, severity…"
+            className="bg-background"
           />
         </div>
 
         <div className="grid gap-1.5">
-          <Label htmlFor="exam-findings" className="text-[13px] font-normal text-fg-secondary">
+          <Label htmlFor="exam-findings" className="text-[13px] font-medium text-foreground">
             Physical examination findings
           </Label>
           <Textarea
@@ -265,12 +297,13 @@ function ClinicalNotesSection({ visit, updateDiagnosis }: { visit: Visit; update
             onChange={(e) => setFindings(e.target.value)}
             placeholder="General appearance, chest auscultation, abdominal palpation, ENT findings…"
             rows={3}
+            className="bg-background"
           />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="diagnosis" className="text-[13px] font-normal text-fg-secondary">
+            <Label htmlFor="diagnosis" className="text-[13px] font-medium text-foreground">
               Provisional diagnosis
             </Label>
             <Input
@@ -278,11 +311,12 @@ function ClinicalNotesSection({ visit, updateDiagnosis }: { visit: Visit; update
               value={diagnosis}
               onChange={(e) => setDiagnosis(e.target.value)}
               placeholder="e.g. Acute Upper Respiratory Infection"
+              className="bg-background"
             />
           </div>
 
           <div className="grid gap-1.5">
-            <Label htmlFor="management-plan" className="text-[13px] font-normal text-fg-secondary">
+            <Label htmlFor="management-plan" className="text-[13px] font-medium text-foreground">
               Care plan & follow-up
             </Label>
             <Input
@@ -290,11 +324,12 @@ function ClinicalNotesSection({ visit, updateDiagnosis }: { visit: Visit; update
               value={plan}
               onChange={(e) => setPlan(e.target.value)}
               placeholder="e.g. Rest, oral fluids, review in 3 days if fever persists"
+              className="bg-background"
             />
           </div>
         </div>
       </div>
-      <div className="mt-4 flex justify-end">
+      <div className="mt-5 flex justify-end">
         <Button 
           type="button" 
           onClick={() => {
@@ -305,16 +340,18 @@ function ClinicalNotesSection({ visit, updateDiagnosis }: { visit: Visit; update
           Save Consultation
         </Button>
       </div>
-    </SectionAccordion>
+    </section>
   );
 }
 
 function LabResultsSection({
   visit,
   requests,
+  doctorId,
 }: {
   visit: Visit;
   requests: LabRequest[];
+  doctorId: string;
 }) {
   const readyCount = requests.filter(
     (request) => (request.status === "result-ready" || request.status === "reviewed") && request.resultValue,
@@ -323,33 +360,63 @@ function LabResultsSection({
   const allReady = requests.length > 0 && readyCount === requests.length;
 
   return (
-    <SectionAccordion
-      title="Laboratory orders & results"
-      icon={FlaskConical}
-      defaultOpen={requests.length > 0}
-      badge={
-        requests.length > 0 ? (
-          <StatusBadge role={allReady ? "success" : "warning"}>
-            {allReady ? "All results ready" : `${readyCount}/${requests.length} ready`}
-          </StatusBadge>
-        ) : (
-          <span className="text-[12px] text-fg-muted">0 ordered</span>
-        )
-      }
-    >
+    <section>
+      <SectionHeader
+        title="Laboratory orders & results"
+        icon={FlaskConical}
+        badge={
+          requests.length > 0 ? (
+            <div className="flex items-center gap-3">
+              <Chip variant={allReady ? "success" : "warning"}>
+                {allReady ? "All results ready" : `${readyCount}/${requests.length} ready`}
+              </Chip>
+              <OrderLabDialog visitId={visit.id} doctorId={doctorId} />
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="text-[13px] text-fg-muted font-medium">0 ordered</span>
+              <OrderLabDialog visitId={visit.id} doctorId={doctorId} />
+            </div>
+          )
+        }
+      />
       <DoctorLabResults requests={requests} />
-    </SectionAccordion>
+    </section>
   );
 }
 
-function PrescriptionSection({ visitId }: { visitId: string }) {
+function PrescriptionSection({ 
+  visitId, 
+  doctorId, 
+  patientId, 
+  patientName 
+}: { 
+  visitId: string;
+  doctorId: string;
+  patientId: string;
+  patientName: string;
+}) {
   return (
-    <SectionAccordion
-      title="Prescriptions & medications"
-      icon={Pill}
-      defaultOpen={true}
-    >
+    <section>
+      <SectionHeader 
+        title="Prescriptions & medications" 
+        icon={Pill} 
+        badge={
+          <div className="flex items-center gap-2">
+            <TreatmentPlanDialog patientName={patientName} />
+            <StartCourseDialog
+              patientId={patientId}
+              trigger={
+                <Button variant="outline" size="sm" className="gap-1.5 text-[12px] h-8">
+                  <Syringe className="size-3.5" />
+                  Start injection
+                </Button>
+              }
+            />
+          </div>
+        }
+      />
       <DoctorPrescriptionPanel visitId={visitId} />
-    </SectionAccordion>
+    </section>
   );
 }

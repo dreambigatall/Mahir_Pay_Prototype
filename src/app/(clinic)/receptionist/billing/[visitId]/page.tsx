@@ -8,7 +8,7 @@ import { ArrowLeft, CheckCircle2, Printer, Receipt } from "lucide-react";
 import { CollectPaymentModal } from "@/components/clinic/collect-payment-modal";
 import { PageHeader } from "@/components/clinic/page-header";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import { useClinic } from "@/lib/clinic-store";
 import { formatMoney, invoiceTotal } from "@/lib/format";
 import { getPatient, getStaff } from "@/lib/mock-data";
@@ -83,14 +83,14 @@ export default function InvoicePage({
 
           <div>
             {isPaid ? (
-              <StatusBadge role="success" className="gap-1 font-medium">
+              <Chip variant="success" className="gap-1 font-medium">
                 <CheckCircle2 className="size-3" />
                 Paid in full
-              </StatusBadge>
+              </Chip>
             ) : (
-              <StatusBadge role="warning" className="font-medium">
+              <Chip variant="warning" className="font-medium">
                 Awaiting payment
-              </StatusBadge>
+              </Chip>
             )}
           </div>
         </div>

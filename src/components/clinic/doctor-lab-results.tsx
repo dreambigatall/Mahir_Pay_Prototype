@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import { useClinic } from "@/lib/clinic-store";
 import type { LabRequest } from "@/lib/types";
 
@@ -33,9 +33,9 @@ function ResultItem({ request }: { request: LabRequest }) {
 
   if (request.status !== "result-ready" && request.status !== "reviewed") {
     return (
-      <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2 bg-surface">
-        <p className="text-[14px]">{request.testName}</p>
-        <StatusBadge role="warning">Awaiting result</StatusBadge>
+      <div className="group flex items-center justify-between rounded-lg hover:bg-surface-1/50 px-3 py-2 -mx-3 transition-colors">
+        <p className="text-[14px] font-medium text-foreground">{request.testName}</p>
+        <Chip variant="warning">Awaiting result</Chip>
       </div>
     );
   }
@@ -47,11 +47,11 @@ function ResultItem({ request }: { request: LabRequest }) {
   const isReviewed = request.status === "reviewed";
 
   return (
-    <div className="rounded-lg border border-border px-3 py-2 bg-surface">
+    <div className="group rounded-lg hover:bg-surface-1/50 px-3 py-3 -mx-3 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <p className="text-[14px] font-medium">{request.testName}</p>
-          {value && <p className="mt-0.5 text-[14px] tabular-nums">{value}</p>}
+          <p className="text-[14px] font-medium text-foreground">{request.testName}</p>
+          {value && <p className="mt-0.5 text-[14px] tabular-nums font-mono text-fg-secondary">{value}</p>}
           {request.resultNotes ? (
             <p className="mt-2 whitespace-pre-wrap text-[13px] text-fg-secondary">
               {request.resultNotes}
@@ -81,11 +81,11 @@ function ResultItem({ request }: { request: LabRequest }) {
           )}
         </div>
         <div className="flex flex-col items-end gap-2">
-          <StatusBadge role={abnormal ? "danger" : "success"}>
+          <Chip variant={abnormal ? "danger" : "success"}>
             {abnormal ? "Abnormal" : "Normal"}
-          </StatusBadge>
+          </Chip>
           {isReviewed && (
-            <StatusBadge role="info">Reviewed</StatusBadge>
+            <Chip variant="info">Reviewed</Chip>
           )}
         </div>
       </div>

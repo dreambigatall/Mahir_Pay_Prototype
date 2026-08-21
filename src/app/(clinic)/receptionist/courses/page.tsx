@@ -8,7 +8,7 @@ import { CourseDoseGrid } from "@/components/clinic/course-dose-grid";
 import { PageHeader } from "@/components/clinic/page-header";
 import { StartCourseDialog } from "@/components/clinic/start-course-dialog";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import { courseProgressLabel, dosesForCourse, nextOpenDose } from "@/lib/courses";
 import { useClinic } from "@/lib/clinic-store";
 import { CLINIC_TODAY } from "@/lib/format";
@@ -103,8 +103,7 @@ export default function CoursesPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <StatusBadge
-                    role={
+                  <Chip variant={
                       course.status === "completed"
                         ? "success"
                         : due?.scheduledDate === CLINIC_TODAY
@@ -119,7 +118,7 @@ export default function CoursesPage() {
                         : due?.scheduledDate === CLINIC_TODAY
                           ? `Due today · Day ${due.dayNumber}`
                           : courseProgressLabel(course, courseDoses)}
-                  </StatusBadge>
+                  </Chip>
                 </div>
               </div>
               <div className="mt-3">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Printer } from "lucide-react";
+import { ClipboardList, Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,10 @@ export function TreatmentPlanDialog({ patientName }: { patientName: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Treatment plan</Button>
+        <Button variant="outline" size="sm" className="gap-1.5 text-[12px] h-8">
+          <ClipboardList className="size-3.5" />
+          Treatment plan
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>

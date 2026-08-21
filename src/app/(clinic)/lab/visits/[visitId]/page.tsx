@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import { Textarea } from "@/components/ui/textarea";
 import { useClinic } from "@/lib/clinic-store";
 import { ageFromDob } from "@/lib/format";
@@ -127,10 +127,9 @@ export default function LabVisitPage() {
                 <Printer className="size-3.5" />
                 Print diagnostic report
               </Button>
-              <StatusBadge role="success" className="gap-1 font-medium">
-                <CheckCircle2 className="size-3" />
+              <Chip variant="success" icon={<CheckCircle2 />} className="font-medium">
                 Results verified
-              </StatusBadge>
+              </Chip>
             </div>
           ) : (
             <Button
@@ -202,9 +201,9 @@ export default function LabVisitPage() {
 
                 <div className="flex items-center gap-2">
                   {request.urgency === "urgent" ? (
-                    <StatusBadge role="danger">Urgent / STAT</StatusBadge>
+                    <Chip variant="warning">Urgent / STAT</Chip>
                   ) : (
-                    <StatusBadge role="neutral">Routine</StatusBadge>
+                    <Chip variant="neutral">Routine</Chip>
                   )}
                 </div>
               </div>
@@ -242,7 +241,7 @@ export default function LabVisitPage() {
                   </Label>
                   <Input
                     id={`${request.id}-value`}
-                    className="tabular-nums font-mono bg-surface-1/50 text-[14px]"
+                    className="tabular-nums font-mono bg-background text-[14px]"
                     placeholder="e.g. 5.4 or Negative"
                     value={draft.resultValue}
                     disabled={allReady}
@@ -266,7 +265,7 @@ export default function LabVisitPage() {
                     placeholder="g/dL, mmol/L, %…"
                     value={draft.resultUnit}
                     disabled={allReady}
-                    className="bg-surface-1/50 text-[13px]"
+                    className="bg-background text-[13px]"
                     onChange={(event) =>
                       updateDraft(request.id, {
                         resultUnit: event.target.value,
@@ -293,7 +292,7 @@ export default function LabVisitPage() {
                 >
                   <label
                     htmlFor={`${request.id}-normal`}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface-1/50 px-3 py-1.5 text-[13px] hover:border-border-strong"
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 text-[13px] hover:border-border-strong"
                   >
                     <RadioGroupItem value="normal" id={`${request.id}-normal`} />
                     <span className="font-medium text-foreground">Normal (Within range)</span>
@@ -322,7 +321,7 @@ export default function LabVisitPage() {
                   placeholder="Additional diagnostic findings, morphology observations, or specimen comments…"
                   value={draft.resultNotes}
                   disabled={allReady}
-                  className="bg-surface-1/50 text-[13px]"
+                  className="bg-background text-[13px]"
                   rows={2}
                   onChange={(event) =>
                     updateDraft(request.id, {

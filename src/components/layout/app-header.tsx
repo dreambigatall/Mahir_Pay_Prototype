@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import { initials } from "@/lib/format";
 import { clinicName, navFor, roleHome, roleLabel } from "@/lib/nav";
 import { useSession } from "@/lib/session";
@@ -70,13 +70,10 @@ export function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-[60px] w-full items-center justify-between gap-4 border-b border-border bg-surface-2/90 px-4 backdrop-blur-md transition-all sm:px-6">
-      {/* Left Section: Sidebar Trigger & Single-Baseline Breadcrumb */}
-      <div className="flex min-w-0 items-center gap-3">
-        <SidebarTrigger className="-ml-1 text-fg-secondary hover:text-foreground hover:bg-surface-1 rounded-lg" />
-        <div className="h-4 w-px bg-border shrink-0" />
-
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 min-w-0">
+    <header className="sticky top-0 z-30 flex h-[72px] w-full items-center justify-between gap-6 bg-background px-6 transition-all sm:px-10">
+      {/* Left Section: Single-Baseline Breadcrumb */}
+      <div className="flex min-w-0 items-center gap-4">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2.5 min-w-0">
           <span className="text-[13px] font-medium text-fg-muted truncate">
             {clinicName}
           </span>
@@ -89,29 +86,22 @@ export function AppHeader() {
 
       {/* Right Section: Operational Clock, Notifications & User Capsule */}
       <div className="flex items-center gap-2.5">
-        {/* Live Operational Clock */}
-        {time && (
-          <div className="hidden md:flex items-center gap-2 rounded-full border border-border/80 bg-surface-1 px-3 py-1 text-[12px] font-medium text-fg-secondary">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-mono tabular-nums">{time} GMT</span>
-            <span className="text-fg-muted font-normal">· Live</span>
-          </div>
-        )}
+
 
         {/* Notifications Button with Badge */}
         <Button
           variant="ghost"
           size="icon"
           aria-label="Notifications"
-          className="relative size-9 rounded-lg text-fg-muted hover:text-foreground hover:bg-surface-1"
+          className="relative size-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-1 transition-all"
           onClick={() =>
             toast.info("No unread clinical alerts", {
               description: "All patient queues and lab requests are up to date.",
             })
           }
         >
-          <Bell className="size-[18px]" strokeWidth={1.75} />
-          <span className="absolute top-2 right-2 size-2 rounded-full bg-clinical-fill ring-2 ring-surface-2" />
+          <Bell className="size-5" strokeWidth={2} />
+          <span className="absolute top-2 right-2.5 size-2 rounded-full bg-primary ring-2 ring-background" />
         </Button>
 
         {/* User Account Capsule Dropdown */}
@@ -119,69 +109,57 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="h-10 gap-2.5 rounded-xl px-2 hover:bg-surface-1 border border-border/60 transition-all"
+              className="h-11 gap-3 rounded-2xl px-2.5 hover:bg-surface-1 border border-transparent hover:border-border/50 hover:shadow-sm transition-all duration-300"
             >
-              <Avatar size="sm" className="ring-1 ring-border/80">
-                <AvatarFallback className="text-[12px] font-semibold bg-surface-1 text-foreground">
+              <Avatar size="sm" className="ring-2 ring-background shadow-sm">
+                <AvatarFallback className="text-[12px] font-bold bg-primary/10 text-primary">
                   {initials(user.name)}
                 </AvatarFallback>
               </Avatar>
 
               <div className="hidden sm:flex flex-col text-left leading-none pr-1">
-                <span className="text-[13px] font-semibold text-foreground">
+                <span className="text-sm font-bold font-heading text-foreground">
                   {user.name}
                 </span>
-                <span className="text-[11px] text-fg-muted mt-0.5">
+                <span className="text-xs text-muted-foreground mt-1">
                   {user.title} {user.room ? `· ${user.room}` : ""}
                 </span>
               </div>
 
-              <div className="hidden sm:block">
-                <StatusBadge role={roleRoleBadge[user.role]} className="text-[10px] py-0 px-2">
-                  {roleLabel[user.role]}
-                </StatusBadge>
-              </div>
-
-              <ChevronDown className="size-3.5 text-fg-muted opacity-80 shrink-0" />
+              <ChevronDown className="size-4 text-muted-foreground opacity-70 shrink-0" />
             </Button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-60 p-1.5 rounded-xl shadow-xl">
-            <DropdownMenuLabel className="px-2.5 py-2">
-              <p className="text-[13px] font-semibold text-foreground">{user.name}</p>
-              <p className="text-[11px] font-mono text-fg-muted font-normal">
-                {user.id.toUpperCase()} · {roleLabel[user.role]}
-              </p>
+          <DropdownMenuContent align="end" className="w-72 p-2 rounded-2xl border border-border/40 shadow-2xl bg-background/95 backdrop-blur-xl">
+            <DropdownMenuLabel className="p-3">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 ring-2 ring-primary/10 shadow-sm shrink-0">
+                  <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
+                    {initials(user.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col min-w-0">
+                  <p className="text-sm font-bold font-heading text-foreground truncate">{user.name}</p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {user.id.toUpperCase()} · {roleLabel[user.role]}
+                  </p>
+                </div>
+              </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem asChild className="rounded-lg text-[13px] py-2">
-              <Link href={roleHome[user.role]} className="flex items-center gap-2">
-                <UserCheck className="size-4 text-fg-muted" />
-                <span>Go to my workspace</span>
-              </Link>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem asChild className="rounded-lg text-[13px] py-2">
-              <Link href="/login" className="flex items-center gap-2">
-                <Users className="size-4 text-fg-muted" />
-                <span>Switch clinic role</span>
-              </Link>
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
+            
+            <DropdownMenuSeparator className="mx-2 my-1 bg-border/40" />
 
             <DropdownMenuItem
               variant="destructive"
-              className="rounded-lg text-[13px] py-2 text-danger-text focus:bg-danger-bg focus:text-danger-text cursor-pointer"
+              className="rounded-xl text-sm py-2.5 px-3 mx-1 mb-1 text-red-600 focus:bg-red-50/50 hover:bg-red-50/50 focus:text-red-700 hover:text-red-700 cursor-pointer transition-all"
               onClick={() => {
                 logout();
                 window.location.href = "/login";
               }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 w-full">
                 <LogOut className="size-4" />
-                <span>Sign out</span>
+                <span className="font-medium">Sign Out</span>
               </div>
             </DropdownMenuItem>
           </DropdownMenuContent>

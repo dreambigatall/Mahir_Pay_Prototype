@@ -71,13 +71,13 @@ export function DoctorVitalsCard({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-surface-2 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Activity className="size-4 text-clinical-fill" />
-          <h3 className="text-[15px] font-semibold text-foreground">
+    <section>
+      <div className="flex items-center justify-between pb-4 border-b border-border/50 mb-4">
+        <div className="flex items-center gap-2.5">
+          <Activity className="size-5 text-clinical-fill" />
+          <h2 className="text-[16px] font-semibold text-foreground tracking-tight">
             Triage & vital signs
-          </h3>
+          </h2>
         </div>
 
         {alerts.length > 0 && (
@@ -95,7 +95,7 @@ export function DoctorVitalsCard({
         )}
       </div>
 
-      <div className="mt-3.5 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-2">
         <VitalField
           label="Blood pressure"
           id="vitals-bp"
@@ -147,7 +147,7 @@ export function DoctorVitalsCard({
       </div>
 
       {bmi && (
-        <div className="mt-3 flex items-center gap-3 border-t border-border/60 pt-2.5 text-[12px] text-fg-secondary">
+        <div className="mt-4 flex items-center gap-3 text-[13px] text-fg-secondary">
           <span>
             Calculated BMI:{" "}
             <strong className="font-mono text-foreground">{bmi} kg/m²</strong>
@@ -164,7 +164,7 @@ export function DoctorVitalsCard({
           </span>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -186,7 +186,7 @@ function VitalField({
   return (
     <div className="grid gap-1">
       <div className="flex items-center justify-between text-[12px]">
-        <Label htmlFor={id} className="font-normal text-fg-secondary">
+        <Label htmlFor={id} className="font-medium text-foreground">
           {label}
         </Label>
         <span className="font-mono text-[11px] text-fg-muted">{unit}</span>
@@ -196,7 +196,7 @@ function VitalField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 font-mono text-[13px] tabular-nums"
+        className="h-9 font-mono text-[13px] tabular-nums bg-background"
       />
     </div>
   );

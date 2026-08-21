@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  ChevronLeft,
   ChevronRight,
   LogOut,
   Palette,
@@ -45,7 +46,7 @@ const rolePortals: Record<string, string> = {
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout } = useSession();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile, toggleSidebar, state } = useSidebar();
   const { visits, labRequests, catalog, courses, doses } = useClinic();
 
   if (!user) return null;
@@ -97,24 +98,31 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
+    <Sidebar collapsible="icon" className="border-none bg-surface-1">
       {/* Brand Header */}
-      <SidebarHeader className="border-b border-sidebar-border p-3">
+      <SidebarHeader className="p-3 relative">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          aria-label="Toggle Sidebar"
+          className="absolute right-2 top-14 group-data-[collapsible=icon]:right-1/2 group-data-[collapsible=icon]:translate-x-1/2 group-data-[collapsible=icon]:top-auto group-data-[collapsible=icon]:-bottom-2 z-50 hidden md:flex size-6 items-center justify-center rounded-full border border-border/60 bg-background shadow-sm hover:bg-surface-1 transition-all text-muted-foreground hover:text-foreground hover:scale-110"
+        >
+          <ChevronLeft className={cn("size-3.5 transition-transform duration-200", state === "collapsed" && "rotate-180")} />
+        </button>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-3 px-1 py-1">
+            <div className="flex flex-col items-center gap-4 px-2 pt-8 pb-5">
               {/* Brand Logo Emblem */}
-              <div className="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
-                <Stethoscope className="size-4 text-white" strokeWidth={2} />
-                <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-sidebar" />
+              <div className="relative flex size-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:rounded-xl transition-all duration-300">
+                <Stethoscope className="size-8 text-white group-data-[collapsible=icon]:size-4.5 transition-all duration-300" strokeWidth={2} />
               </div>
 
               {/* Clinic & Portal Title */}
-              <div className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate text-[14px] font-bold text-foreground tracking-tight">
+              <div className="flex flex-col items-center justify-center text-center min-w-0 w-full leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="truncate w-full text-[18px] font-bold text-foreground tracking-tight">
                   {clinicName}
                 </span>
-                <span className="truncate text-[11px] font-medium text-fg-muted">
+                <span className="truncate w-full text-[13px] font-medium text-fg-muted mt-1">
                   {rolePortals[user.role] ?? roleLabel[user.role]}
                 </span>
               </div>
@@ -152,9 +160,6 @@ export function AppSidebar() {
                       )}
                     >
                       <Link href={item.href} onClick={closeMobile}>
-                        {active && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-clinical-fill group-data-[collapsible=icon]:hidden" />
-                        )}
                         <Icon
                           className={cn(
                             "size-[18px]",
@@ -163,17 +168,8 @@ export function AppSidebar() {
                           strokeWidth={active ? 2 : 1.75}
                         />
                         <span className="flex-1 truncate">{item.label}</span>
-                        {badge && (
-                          <span
-                            className={cn(
-                              "ml-auto rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums group-data-[collapsible=icon]:hidden",
-                              active
-                                ? "bg-clinical-fill text-white"
-                                : "bg-surface-1 text-fg-secondary border border-border/80",
-                            )}
-                          >
-                            {badge}
-                          </span>
+                        {active && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 size-2 rounded-full bg-clinical-fill group-data-[collapsible=icon]:hidden" />
                         )}
                       </Link>
                     </SidebarMenuButton>
@@ -185,56 +181,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer Tools & User Account */}
-      <SidebarFooter className="border-t border-sidebar-border p-2 space-y-2">
-        <SidebarMenu className="gap-1">
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              tooltip={designNav.label}
-              className="text-[13px] text-fg-secondary hover:text-foreground"
-            >
-              <Link href={designNav.href} onClick={closeMobile}>
-                <Palette className="size-[17px] text-fg-muted" strokeWidth={1.75} />
-                <span>{designNav.label}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
 
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="Sign out"
-              className="text-[13px] text-fg-secondary hover:text-danger-text hover:bg-danger-bg/40 transition-colors"
-              onClick={() => {
-                logout();
-                window.location.href = "/login";
-              }}
-            >
-              <LogOut className="size-[17px] text-fg-muted group-hover:text-danger-text" strokeWidth={1.75} />
-              <span>Sign out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-
-        {/* User Account Capsule Card */}
-        <div className="rounded-xl border border-border/80 bg-surface-2 p-2.5 group-data-[collapsible=icon]:hidden">
-          <div className="flex items-center gap-2.5">
-            <Avatar size="sm" className="ring-1 ring-border shrink-0">
-              <AvatarFallback className="text-[11px] font-semibold bg-surface-1 text-foreground">
-                {initials(user.name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-semibold text-foreground">
-                {user.name}
-              </p>
-              <p className="truncate text-[11px] text-fg-muted">
-                {user.title} {user.room ? `· ${user.room}` : ""}
-              </p>
-            </div>
-          </div>
-        </div>
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowUpRight, CheckCircle2, Clock } from "lucide-react";
 
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import {
   Table,
   TableBody,
@@ -136,9 +136,9 @@ export function PriorityAlertsTable({
 
                     {/* Status Badge */}
                     <TableCell className="px-3 py-2">
-                      <StatusBadge role={badge.role} className="text-[11px]">
+                      <Chip variant={badge.role} className="text-[11px]">
                         {badge.label}
-                      </StatusBadge>
+                      </Chip>
                     </TableCell>
 
                     {/* Wait Time with SLA Highlight */}

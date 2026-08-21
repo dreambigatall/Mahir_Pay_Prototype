@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -8,23 +8,22 @@ import {
   Clock,
   FileSpreadsheet,
   FlaskConical,
-  Kanban,
   Search,
   X,
+  ChevronLeft,
+  ChevronRight,
+  GripVertical
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { Chip } from "@/components/ui/chip";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useClinic } from "@/lib/clinic-store";
 import { ageFromDob } from "@/lib/format";
 import { groupLabsByVisit } from "@/lib/lab-groups";
@@ -34,9 +33,12 @@ import { LAB_COLUMNS } from "@/lib/visit-status";
 
 export function LabBoard({ requests }: { requests: LabRequest[] }) {
   const { patients, visits } = useClinic();
-  const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [filterTab, setFilterTab] = useState<"all" | "urgent" | "pending" | "ready">("all");
   const [search, setSearch] = useState("");
+  
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
 
   const groups = useMemo(() => groupLabsByVisit(requests), [requests]);
 
@@ -80,6 +82,26 @@ export function LabBoard({ requests }: { requests: LabRequest[] }) {
 
     return list;
   }, [groups, filterTab, search, visits, patients]);
+
+  const checkScroll = () => {
+    if (!scrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    setShowLeft(scrollLeft > 0);
+    setShowRight(scrollLeft < scrollWidth - clientWidth - 2);
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [filteredGroups]);
+
+  const scroll = (dir: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = 402; // width (400) + gap (2)
+      scrollRef.current.scrollBy({ left: dir === "left" ? -scrollAmount : scrollAmount, behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -136,28 +158,59 @@ export function LabBoard({ requests }: { requests: LabRequest[] }) {
 
       {/* Control Bar: Filter Tabs, Search, and View Mode Toggle */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs
+        <Select
           value={filterTab}
-          onValueChange={(val) =>
-            setFilterTab(val as "all" | "urgent" | "pending" | "ready")
-          }
-          className="w-full sm:w-auto"
+          onValueChange={(val) => setFilterTab(val as "all" | "urgent" | "pending" | "ready")}
         >
-          <TabsList className="h-9 bg-surface-1 p-1">
-            <TabsTrigger value="all" className="text-[13px]">
-              All ({groups.length})
-            </TabsTrigger>
-            <TabsTrigger value="urgent" className="text-[13px]">
-              Urgent ({stats.urgentCount})
-            </TabsTrigger>
-            <TabsTrigger value="pending" className="text-[13px]">
-              Pending ({stats.inProgressCount + stats.requestedCount})
-            </TabsTrigger>
-            <TabsTrigger value="ready" className="text-[13px]">
-              Completed ({stats.readyCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+          <SelectTrigger className="h-9 px-4 bg-background font-medium text-[13px] border-border/60 hover:bg-surface-2 transition-colors focus:ring-1 focus:ring-ring/50 w-full sm:w-auto">
+            <div className="flex items-center gap-2">
+              <SelectValue placeholder="Filter views..." />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="pl-3 py-2">
+              <div className="flex items-center justify-between w-full min-w-40">
+                <span>All requisitions</span>
+                <span className="ml-3 text-[12px] font-mono text-fg-muted bg-surface-2 px-1.5 py-0.5 rounded-full">
+                  {groups.length}
+                </span>
+              </div>
+            </SelectItem>
+            <SelectItem value="urgent" className="pl-3 py-2">
+              <div className="flex items-center justify-between w-full min-w-40">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="size-3.5 text-danger-fill" />
+                  <span>Urgent</span>
+                </div>
+                <span className="ml-3 text-[12px] font-mono text-danger-text bg-danger-fill/10 px-1.5 py-0.5 rounded-full">
+                  {stats.urgentCount}
+                </span>
+              </div>
+            </SelectItem>
+            <SelectItem value="pending" className="pl-3 py-2">
+              <div className="flex items-center justify-between w-full min-w-40">
+                <div className="flex items-center gap-2">
+                  <Clock className="size-3.5 text-warning-fill" />
+                  <span>Pending</span>
+                </div>
+                <span className="ml-3 text-[12px] font-mono text-warning-text bg-warning-fill/10 px-1.5 py-0.5 rounded-full">
+                  {stats.inProgressCount + stats.requestedCount}
+                </span>
+              </div>
+            </SelectItem>
+            <SelectItem value="ready" className="pl-3 py-2">
+              <div className="flex items-center justify-between w-full min-w-40">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-3.5 text-success-fill" />
+                  <span>Completed</span>
+                </div>
+                <span className="ml-3 text-[12px] font-mono text-success-text bg-success-fill/10 px-1.5 py-0.5 rounded-full">
+                  {stats.readyCount}
+                </span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
 
         <div className="flex items-center gap-2">
           <div className="relative w-full sm:w-60">
@@ -180,134 +233,67 @@ export function LabBoard({ requests }: { requests: LabRequest[] }) {
             )}
           </div>
 
-          <div className="flex items-center rounded-lg border border-border bg-surface-1 p-0.5">
-            <Button
-              variant={viewMode === "kanban" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("kanban")}
-              className="h-8 px-2.5 text-[12px] gap-1.5"
-            >
-              <Kanban className="size-3.5" />
-              Kanban
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="h-8 px-2.5 text-[12px] gap-1.5"
-            >
-              <FileSpreadsheet className="size-3.5" />
-              List
-            </Button>
-          </div>
         </div>
       </div>
 
-      {/* Main View: Kanban vs Table */}
-      {viewMode === "kanban" ? (
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {LAB_COLUMNS.map((column) => {
-            const columnCards = filteredGroups.filter(
-              (group) => group.status === column.id,
-            );
-            return (
-              <div
-                key={column.id}
-                className="w-[300px] shrink-0 rounded-xl bg-surface-1 p-3"
-              >
-                <div className="mb-3 flex items-center justify-between border-b border-border pb-2">
-                  <p className="text-[13px] font-medium text-foreground">{column.title}</p>
-                  <span className="font-mono text-[12px] text-fg-muted">
-                    {columnCards.length}
-                  </span>
+      {/* Main View: Kanban */}
+      <div className="relative group mt-2">
+          {showLeft && (
+            <button
+              onClick={() => scroll("left")}
+              className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/90 shadow-lg border border-border p-3 hover:bg-surface-2 transition-all backdrop-blur-sm"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="size-6 text-primary" />
+            </button>
+          )}
+
+          <div 
+            ref={scrollRef}
+            onScroll={checkScroll}
+            className="flex gap-0.5 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          >
+            {LAB_COLUMNS.map((column) => {
+              const columnCards = filteredGroups.filter(
+                (group) => group.status === column.id,
+              );
+              return (
+                <div
+                  key={column.id}
+                  className="w-[400px] shrink-0 rounded-2xl bg-card p-5 shadow-sm"
+                >
+                  <div className="mb-5 flex items-center justify-between border-b border-border/50 pb-3.5">
+                    <p className="text-xl font-bold font-heading text-foreground tracking-tight">{column.title}</p>
+                    <span className="font-mono text-sm font-medium text-secondary-foreground bg-secondary px-2.5 py-0.5 rounded-full">
+                      {columnCards.length}
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    {columnCards.length === 0 ? (
+                      <p className="py-12 text-center text-[16px] text-fg-muted">
+                        No requisitions in this stage
+                      </p>
+                    ) : (
+                      columnCards.map((group) => (
+                        <LabPatientCard key={group.visitId} group={group} />
+                      ))
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {columnCards.length === 0 ? (
-                    <p className="py-8 text-center text-[12px] text-fg-muted">
-                      No requisitions in this stage
-                    </p>
-                  ) : (
-                    columnCards.map((group) => (
-                      <LabPatientCard key={group.visitId} group={group} />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {showRight && (
+            <button
+              onClick={() => scroll("right")}
+              className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/90 shadow-lg border border-border p-3 hover:bg-surface-2 transition-all backdrop-blur-sm"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="size-6 text-primary" />
+            </button>
+          )}
         </div>
-      ) : (
-        /* Tabular List View */
-        <div className="overflow-hidden rounded-xl border border-border bg-surface-2">
-          <Table className="w-full table-fixed">
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="h-11 w-[32%] px-4 text-left text-[12px] font-medium text-fg-secondary">
-                  Patient & requisition
-                </TableHead>
-                <TableHead className="h-11 w-[32%] px-4 text-left text-[12px] font-medium text-fg-secondary">
-                  Ordered tests
-                </TableHead>
-                <TableHead className="h-11 w-[16%] px-4 text-left text-[12px] font-medium text-fg-secondary">
-                  Status & priority
-                </TableHead>
-                <TableHead className="h-11 w-[20%] px-4 text-right text-[12px] font-medium text-fg-secondary">
-                  Action
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredGroups.map((group) => {
-                const { visit, patient, doctor } = useGroupInfo(group);
-                if (!patient) return null;
-
-                return (
-                  <TableRow key={group.visitId} className="h-12 hover:bg-surface-1/60">
-                    <TableCell className="px-4 py-2.5 text-left">
-                      <p className="text-[14px] font-medium text-foreground truncate">
-                        {patient.name}
-                      </p>
-                      <p className="font-mono text-[11px] text-fg-muted">
-                        {patient.patientId} · {doctor?.name}
-                      </p>
-                    </TableCell>
-
-                    <TableCell className="px-4 py-2.5 text-left">
-                      <p className="text-[13px] text-foreground font-medium truncate">
-                        {group.requests.map((r) => r.testName).join(", ")}
-                      </p>
-                      <span className="text-[11px] text-fg-muted font-mono">
-                        {group.testCount} {group.testCount === 1 ? "test" : "tests"}
-                      </span>
-                    </TableCell>
-
-                    <TableCell className="px-4 py-2.5 text-left">
-                      <div className="flex items-center gap-1.5">
-                        {group.urgent && (
-                          <StatusBadge role="danger">Urgent</StatusBadge>
-                        )}
-                        {group.status === "result-ready" ? (
-                          <StatusBadge role="success">Ready</StatusBadge>
-                        ) : (
-                          <StatusBadge role="warning">In progress</StatusBadge>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="px-4 py-2.5 text-right">
-                      <Button size="sm" variant="outline" asChild className="h-8 text-[12px]">
-                        <Link href={`/lab/visits/${group.visitId}`}>
-                          {group.status === "result-ready" ? "View report" : "Enter results"}
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
     </div>
   );
 }
@@ -337,38 +323,40 @@ function LabPatientCard({
   return (
     <Link
       href={`/lab/visits/${group.visitId}`}
-      className="block rounded-xl border border-border bg-surface-2 p-3.5 transition-colors hover:border-border-strong"
+      className="group block rounded-xl border border-border/60 bg-surface-2 p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-primary/30 mb-3"
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <FlaskConical className="size-3.5 text-clinical-fill shrink-0" />
-          <p className="text-[14px] font-medium text-foreground truncate">{patient.name}</p>
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <GripVertical className="size-5 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+          <p className="text-lg font-bold font-heading text-foreground group-hover:text-primary transition-colors truncate">
+            {patient.name}
+          </p>
         </div>
         {group.urgent ? (
-          <StatusBadge role="danger">Urgent</StatusBadge>
+          <Chip variant="warning">Urgent</Chip>
         ) : (
-          <StatusBadge role="neutral">Routine</StatusBadge>
+          <Chip variant="neutral">Routine</Chip>
         )}
       </div>
 
-      <p className="mt-1 font-mono text-[11px] text-fg-muted">
+      <p className="mt-2.5 font-mono text-sm text-muted-foreground">
         {patient.patientId} · {ageFromDob(patient.dateOfBirth)}{patient.gender}
       </p>
 
-      <div className="mt-2.5 rounded-md bg-surface-1 p-2 border border-border/60">
-        <p className="text-[12px] font-medium text-foreground tabular-nums">
+      <div className="mt-3 rounded-md bg-surface-1 p-2 border border-border/60">
+        <p className="text-[13px] font-medium text-foreground tabular-nums">
           {countLabel}
         </p>
-        <p className="text-[11px] text-fg-secondary truncate mt-0.5">
+        <p className="text-[12px] text-fg-secondary truncate mt-0.5">
           {group.requests.map((request) => request.testName).join(", ")}
         </p>
       </div>
 
-      <div className="mt-2.5 pt-2 border-t border-border/50 flex items-center justify-between text-[11px] text-fg-muted">
+      <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between text-[14px] text-fg-muted">
         <span className="truncate">{doctor?.name}</span>
         {isCompleted ? (
           <span className="text-success-text font-medium flex items-center gap-1">
-            <CheckCircle2 className="size-3" />
+            <CheckCircle2 className="size-3.5" />
             Ready
           </span>
         ) : (

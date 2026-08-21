@@ -26,13 +26,13 @@ export default function LoginPage() {
   const router = useRouter();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-1 px-4 py-10">
-      <div className="w-full max-w-3xl">
-        <p className="text-[13px] font-medium text-fg-muted">{clinicName}</p>
-        <h1 className="mt-1 text-[24px] leading-[1.3] font-semibold">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <div className="w-full max-w-3xl rounded-3xl bg-surface-1 p-8 sm:p-12 shadow-sm border border-border/50">
+        <p className="text-sm font-semibold text-primary uppercase tracking-wider">{clinicName}</p>
+        <h1 className="mt-3 text-3xl sm:text-4xl leading-tight font-bold font-heading">
           Sign in to the clinic
         </h1>
-        <p className="mt-1 max-w-xl text-[13px] text-fg-secondary">
+        <p className="mt-3 max-w-xl text-sm sm:text-base text-muted-foreground">
           Prototype login — pick a role to open that workspace. No password in this UI build.
         </p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -46,18 +46,18 @@ export default function LoginPage() {
                   login(person);
                   router.push(roleHome[person.role]);
                 }}
-                className="rounded-xl border border-border bg-surface-2 p-4 text-left transition-colors hover:border-border-strong"
+                className="group rounded-2xl border border-transparent bg-card p-5 text-left shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-primary/20"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[15px] font-medium">{person.name}</p>
-                    <p className="text-[13px] text-fg-secondary">{person.title}</p>
+                    <p className="text-base font-semibold text-foreground group-hover:text-primary transition-colors">{person.name}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{person.title}</p>
                   </div>
-                  <span className="flex size-9 items-center justify-center rounded-lg bg-surface-1 text-fg-secondary">
-                    <Icon className="size-4" strokeWidth={1.75} />
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Icon className="size-5" strokeWidth={2} />
                   </span>
                 </div>
-                <p className="mt-4 text-[12px] font-medium text-fg-muted">
+                <p className="mt-5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {roleLabel[person.role]}
                 </p>
               </button>

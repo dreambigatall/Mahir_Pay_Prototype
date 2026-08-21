@@ -45,7 +45,10 @@ export function ScheduleAppointmentDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline">Schedule follow-up</Button>
+        <Button variant="outline" size="sm" className="gap-1.5 text-[12px] h-8">
+          <CalendarIcon className="size-3.5" />
+          Schedule follow-up
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
