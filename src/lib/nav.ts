@@ -12,7 +12,7 @@ import {
 
 import type { Role } from "@/lib/types";
 
-export const clinicName = "Ridgeway Clinic";
+export const clinicName = "Mahir Clinic";
 
 export const roleHome: Record<Role, string> = {
   receptionist: "/receptionist",

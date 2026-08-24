@@ -19,11 +19,11 @@ import { useSession } from "@/lib/session";
 
 /* ---------- Staff credentials map (prototype) ---------- */
 const credentialsMap: Record<string, { password: string; staffIndex: number }> = {
-  "ama@ridgeway.clinic": { password: "demo", staffIndex: 0 },
-  "kwame@ridgeway.clinic": { password: "demo", staffIndex: 1 },
-  "akosua@ridgeway.clinic": { password: "demo", staffIndex: 2 },
-  "isaac@ridgeway.clinic": { password: "demo", staffIndex: 3 },
-  "nadia@ridgeway.clinic": { password: "demo", staffIndex: 4 },
+  "ama@mahir.clinic": { password: "demo", staffIndex: 0 },
+  "kwame@mahir.clinic": { password: "demo", staffIndex: 1 },
+  "akosua@mahir.clinic": { password: "demo", staffIndex: 2 },
+  "isaac@mahir.clinic": { password: "demo", staffIndex: 3 },
+  "nadia@mahir.clinic": { password: "demo", staffIndex: 4 },
 };
 
 /* ---------- Typewriter Component ---------- */
@@ -341,7 +341,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                  placeholder="you@ridgeway.clinic"
+                  placeholder="you@mahir.clinic"
                   className="h-10 pl-9 bg-background text-[13px]"
                   autoComplete="email"
                 />
@@ -401,10 +401,10 @@ export default function LoginPage() {
               Demo credentials
             </p>
             <div className="space-y-1 text-[12px] text-fg-secondary">
-              <p><span className="font-mono text-foreground">ama@ridgeway.clinic</span> — Receptionist</p>
-              <p><span className="font-mono text-foreground">kwame@ridgeway.clinic</span> — Doctor</p>
-              <p><span className="font-mono text-foreground">isaac@ridgeway.clinic</span> — Lab</p>
-              <p><span className="font-mono text-foreground">nadia@ridgeway.clinic</span> — Admin</p>
+              <p><span className="font-mono text-foreground">ama@mahir.clinic</span> — Receptionist</p>
+              <p><span className="font-mono text-foreground">kwame@mahir.clinic</span> — Doctor</p>
+              <p><span className="font-mono text-foreground">isaac@mahir.clinic</span> — Lab</p>
+              <p><span className="font-mono text-foreground">nadia@mahir.clinic</span> — Admin</p>
               <p className="mt-1.5 text-fg-muted">Password for all: <span className="font-mono text-foreground">demo</span></p>
             </div>
           </div>

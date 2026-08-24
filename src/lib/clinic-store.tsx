@@ -42,7 +42,7 @@ import type {
   Referral,
 } from "@/lib/types";
 
-const STORAGE_KEY = "ridgeway-cms-clinic-data-v4";
+const STORAGE_KEY = "mahir-cms-clinic-data-v4";
 
 type ClinicState = {
   catalog: CatalogItem[];

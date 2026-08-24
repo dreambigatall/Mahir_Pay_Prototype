@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 import type { StaffUser } from "@/lib/types";
 
-const STORAGE_KEY = "ridgeway-cms-session";
+const STORAGE_KEY = "mahir-cms-session";
 
 type SessionContextValue = {
   user: StaffUser | null;

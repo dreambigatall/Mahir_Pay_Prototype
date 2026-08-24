@@ -6,7 +6,7 @@
 
 ---
 
-**Project:** Ridgeway Clinic
+**Project:** Mahir Clinic
 **Generated:** 2026-08-21 07:34:47
 **Category:** Healthcare App
 
