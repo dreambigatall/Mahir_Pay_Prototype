@@ -39,8 +39,9 @@ type Mode = "new" | "returning" | "appointment" | "course";
 const modes: { id: Mode; label: string; icon: typeof UserPlus }[] = [
   { id: "new", label: "New walk-in", icon: UserPlus },
   { id: "returning", label: "Returning search", icon: Search },
-  { id: "appointment", label: "Appointments", icon: CalendarClock },
-  { id: "course", label: "Injection / vaccine", icon: Syringe },
+  // Hidden as per requirement:
+  // { id: "appointment", label: "Appointments", icon: CalendarClock },
+  // { id: "course", label: "Injection / vaccine", icon: Syringe },
 ];
 
 const todayAppointments = [
@@ -349,7 +350,7 @@ function ReturningSearch({
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return clinicPatients.slice(0, 6);
+    if (!q) return [];
     return clinicPatients.filter((patient) => {
       const phone = patient.phone.replace(/\s/g, "");
       return (
@@ -403,7 +404,15 @@ function ReturningSearch({
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="pr-4 pb-4">
-          {matches.length === 0 ? (
+          {!query.trim() ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-[13px] text-fg-muted">
+              <Search className="size-8 text-fg-muted/40 mb-3" />
+              <p className="font-medium text-foreground">Search for a returning patient</p>
+              <p className="text-fg-secondary mt-1">
+                Type patient name, phone number, or Patient ID above.
+              </p>
+            </div>
+          ) : matches.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center text-[13px] text-fg-muted">
               <UserPlus className="size-8 text-fg-muted/40 mb-3" />
               <p>No matching patient records found.</p>
