@@ -1,0 +1,72 @@
+import {
+  BarChart3,
+  Boxes,
+  Columns3,
+  FlaskConical,
+  LayoutDashboard,
+  Palette,
+  Pill,
+  Receipt,
+  Stethoscope,
+  Syringe,
+  Users,
+} from "lucide-react";
+
+import type { Role } from "@/lib/types";
+
+export const clinicName = "Mahir Clinic";
+
+export const roleHome: Record<Role, string> = {
+  receptionist: "/receptionist",
+  doctor: "/doctor",
+  lab: "/lab",
+  pharmacist: "/pharmacy",
+  admin: "/admin",
+};
+
+export const roleLabel: Record<Role, string> = {
+  receptionist: "Receptionist",
+  doctor: "Doctor",
+  lab: "Laboratory",
+  pharmacist: "Pharmacy",
+  admin: "Admin",
+};
+
+export function navFor(role: Role) {
+  switch (role) {
+    case "receptionist":
+      return [
+        { href: "/receptionist", label: "Queue", icon: Columns3 },
+        { href: "/receptionist/courses", label: "Injections", icon: Syringe },
+        { href: "/receptionist/patients", label: "Patients", icon: Users },
+        { href: "/receptionist/billing", label: "Billing", icon: Receipt },
+      ];
+    case "doctor":
+      return [
+        { href: "/doctor", label: "Queue", icon: Columns3 },
+        { href: "/doctor/patients", label: "My patients", icon: Stethoscope },
+      ];
+    case "lab":
+      return [{ href: "/lab", label: "Lab board", icon: FlaskConical }];
+    case "pharmacist":
+      return [
+        { href: "/pharmacy", label: "Dispensing", icon: Pill },
+        { href: "/pharmacy/inventory", label: "Inventory", icon: Boxes },
+      ];
+    case "admin":
+      return [
+        { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/admin/users", label: "User Management", icon: Users },
+        { href: "/admin/catalog", label: "Catalog", icon: Receipt },
+        { href: "/admin/reports", label: "Reports", icon: BarChart3 },
+      ];
+  }
+}
+
+export const designNav = {
+  href: "/design",
+  label: "Design system",
+  icon: Palette,
+};
+
+
