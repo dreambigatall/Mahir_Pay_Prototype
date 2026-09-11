@@ -60,7 +60,9 @@ import{asyncHandler}from"./shared/http/async-handler";
 export function createApp(pool:Pool=databasePool,environment:Environment=env):Express{
  const app=express();if(environment.TRUST_PROXY)app.set("trust proxy",1);app.disable("x-powered-by");
  const logger=createLogger(environment);
- app.use(requestContext);app.use(pinoHttp({logger,quietReqLogger:environment.NODE_ENV==="test",serializers:{req(request){return{id:request.id,method:request.method,url:request.url,remoteAddress:request.remoteAddress};},res(response){return{statusCode:response.statusCode};}},customLogLevel(_request,response,error){if(error||response.statusCode>=500)return"error";if(response.statusCode>=400)return"warn";return"info";},customSuccessMessage(request,response){return request.method+" "+request.url+" "+response.statusCode;},customErrorMessage(request,response){return request.method+" "+request.url+" "+response.statusCode+" failed";}}));app.use(helmet());
+ app.use(requestContext);app.use(pinoHttp({logger,quietReqLogger:environment.NODE_ENV==="test",serializers:{req(request){return{id:request.id,method:request.method,url:request.url,remoteAddress:request.remoteAddress};},res(response){return{statusCode:response.statusCode};}},customLogLevel(_request,response,error){if(error||response.statusCode>=500)return"error";if(response.statusCode>=400)return"warn";return"info";},customSuccessMessage(request,response){return request.method+" "+request.url+" "+response.statusCode;},customErrorMessage(request,response){return request.method+" "+request.url+" "+response.statusCode+" failed";}}));
+ // cross-origin so a separate Render frontend can read API responses
+ app.use(helmet({crossOriginResourcePolicy:{policy:"cross-origin"}}));
  app.use(cors({origin:environment.FRONTEND_ORIGIN,credentials:true,methods:["GET","POST","PUT","PATCH","DELETE","OPTIONS"]}));
  app.use(originGuard(environment.FRONTEND_ORIGIN));app.use(express.json({limit:"1mb"}));app.use(cookieParser());
  const audit=new AuditRepository(pool);const authRepo=new AuthRepository(pool);

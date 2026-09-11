@@ -26,13 +26,7 @@ export function createAuthRouter(service: AuthService, store: AuthStore, env: En
     validateBody(loginSchema),
     asyncHandler(async (request, response) => {
       const result = await service.login(request.body.email, request.body.password, metadataFrom(request));
-      response.cookie(env.SESSION_COOKIE_NAME, result.token, {
-        httpOnly: true,
-        secure: env.NODE_ENV === "production",
-        sameSite: "lax",
-        expires: result.expiresAt,
-        path: "/",
-      });
+      response.cookie(env.SESSION_COOKIE_NAME, result.token, sessionCookieOptions(env, result.expiresAt));
       response.status(200).json({ user: result.user });
     }),
   );
@@ -60,13 +54,7 @@ export function createAuthRouter(service: AuthService, store: AuthStore, env: En
         request.body.newPassword,
         metadataFrom(request),
       );
-      response.cookie(env.SESSION_COOKIE_NAME, result.token, {
-        httpOnly: true,
-        secure: env.NODE_ENV === "production",
-        sameSite: "lax",
-        expires: result.expiresAt,
-        path: "/",
-      });
+      response.cookie(env.SESSION_COOKIE_NAME, result.token, sessionCookieOptions(env, result.expiresAt));
       response.status(200).json({ user: result.user });
     }),
   );
@@ -77,11 +65,18 @@ function metadataFrom(request: Request): RequestMetadata {
   return { requestId: request.requestId, ipAddress: request.ip, userAgent: request.get("user-agent") };
 }
 
-function clearSessionCookie(response: Response, env: Environment): void {
-  response.clearCookie(env.SESSION_COOKIE_NAME, {
+/** Production: SameSite=None so a separate Render frontend origin can keep the session cookie. */
+function sessionCookieOptions(env: Environment, expires?: Date) {
+  const isProd = env.NODE_ENV === "production";
+  return {
     httpOnly: true,
-    secure: env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd,
+    sameSite: isProd ? ("none" as const) : ("lax" as const),
     path: "/",
-  });
+    ...(expires ? { expires } : {}),
+  };
+}
+
+function clearSessionCookie(response: Response, env: Environment): void {
+  response.clearCookie(env.SESSION_COOKIE_NAME, sessionCookieOptions(env));
 }
