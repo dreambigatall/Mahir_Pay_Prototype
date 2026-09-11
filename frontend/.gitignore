@@ -1,0 +1,12 @@
+# Next.js local ignores (root .gitignore also covers these)
+node_modules/
+.next/
+out/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+next-env.d.ts

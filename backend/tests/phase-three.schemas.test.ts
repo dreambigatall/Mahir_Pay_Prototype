@@ -1,11 +1,25 @@
 import{describe,expect,it}from"vitest";
 import{invoiceCreateSchema,paymentCreateSchema}from"../src/modules/billing/billing.schemas";
-import{catalogCreateSchema}from"../src/modules/catalog/catalog.schemas";
+import{catalogCreateSchema,supplyBundleSchema,supplyUsageRequestCreateSchema,supplyUsageRequestRejectSchema}from"../src/modules/catalog/catalog.schemas";
 import{diagnosticOrderSchema}from"../src/modules/diagnostics/diagnostic.schemas";
 import{prescriptionCreateSchema}from"../src/modules/pharmacy/pharmacy.schemas";
 const id="91a7582a-2882-47bf-9398-ab283119285b";
 describe("Phase 3 request invariants",()=>{
- it("allows inventory tracking only for drugs",()=>{expect(catalogCreateSchema.safeParse({itemType:"procedure",name:"Injection",price:10,trackInventory:true}).success).toBe(false);expect(catalogCreateSchema.safeParse({itemType:"drug",name:"Amoxicillin",price:10,trackInventory:true,openingQuantity:20}).success).toBe(true);});
+ it("allows inventory tracking only for drugs",()=>{
+   expect(catalogCreateSchema.safeParse({itemType:"procedure",name:"Injection",price:10,trackInventory:true}).success).toBe(false);
+   expect(catalogCreateSchema.safeParse({itemType:"drug",name:"Amoxicillin",price:10,trackInventory:true,openingQuantity:20}).success).toBe(true);
+   expect(catalogCreateSchema.safeParse({itemType:"supply",name:"Malaria kit",price:0,trackInventory:true,supplyKind:"test_kit"}).success).toBe(false);
+ });
+ it("creates clinic supplies as a typed bundle",()=>{
+   expect(supplyBundleSchema.safeParse({groupName:"Test kits",items:[{name:"Malaria RDT",unit:"kit",openingQuantity:20}]}).success).toBe(true);
+   expect(supplyBundleSchema.safeParse({items:[{name:"Malaria RDT"}]}).success).toBe(false);
+ });
+ it("validates supply usage request payloads",()=>{
+   expect(supplyUsageRequestCreateSchema.safeParse({catalogItemId:id,quantity:12,reason:"Today malaria RDTs"}).success).toBe(true);
+   expect(supplyUsageRequestCreateSchema.safeParse({catalogItemId:id,quantity:0,reason:"Today"}).success).toBe(false);
+   expect(supplyUsageRequestRejectSchema.safeParse({reviewNote:"Wrong item"}).success).toBe(true);
+   expect(supplyUsageRequestRejectSchema.safeParse({}).success).toBe(false);
+ });
  it("accepts lab panels with member tests",()=>{expect(catalogCreateSchema.safeParse({itemType:"lab_panel",name:"Antenatal panel",memberItemIds:["550e8400-e29b-41d4-a716-446655440000"]}).success).toBe(true);expect(catalogCreateSchema.safeParse({itemType:"lab_panel",name:"Empty panel",memberItemIds:[]}).success).toBe(false);});
  it("deduplicates diagnostic catalog selections",()=>{const parsed=diagnosticOrderSchema.parse({encounterId:id,catalogItemIds:[id,id]});expect(parsed.catalogItemIds).toEqual([id]);});
  it("requires approval context and cent precision for discounts",()=>{expect(invoiceCreateSchema.safeParse({visitId:id,discountAmount:5,items:[{catalogItemId:id,quantity:1}]}).success).toBe(false);expect(invoiceCreateSchema.safeParse({visitId:id,discountAmount:0.001,items:[{catalogItemId:id,quantity:1}]}).success).toBe(false);});

@@ -197,6 +197,13 @@ export class WorkflowRepository {
       if (["completed", "billed", "cancelled"].includes(before.status)) {
         throw new AppError(409, "VISIT_NOT_ASSIGNABLE", "Doctor cannot be changed on a closed visit");
       }
+      if (!["awaiting_triage", "awaiting_doctor"].includes(before.status)) {
+        throw new AppError(
+          409,
+          "VISIT_DOCTOR_LOCKED",
+          "Doctor cannot be changed after consultation has started",
+        );
+      }
       if (doctorId) await requireDoctor(client, doctorId);
       await client.query(
         "update clinic.visits set doctor_id=$2, updated_at=now() where id=$1",
@@ -292,6 +299,16 @@ export class WorkflowRepository {
        left join clinic.users d on d.id = v.doctor_id
        where q.station=$1 and q.status = coalesce($2, q.status)
          and q.status in ('waiting','called','in_service')
+         and (
+           q.station <> 'billing'
+           or (
+             v.status not in ('billed','completed','cancelled')
+             and not exists (
+               select 1 from clinic.invoices i
+               where i.visit_id = v.id and i.status = 'paid'
+             )
+           )
+         )
        order by case q.priority when 'emergency' then 1 when 'urgent' then 2 else 3 end,
          q.queued_at, q.id limit $3`,
       [station, status ?? null, limit],

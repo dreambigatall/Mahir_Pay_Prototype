@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertCircle, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
+import { canAssignVisitDoctor } from "@/components/clinic/assign-visit-doctor-button";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -114,7 +115,7 @@ export function EditPatientDialog({ patient, open, onOpenChange }: Props) {
         })),
       });
 
-      if (activeVisit) {
+      if (activeVisit && canAssignVisitDoctor(activeVisit.status)) {
         const nextDoctorId = doctorId === UNASSIGNED ? null : doctorId;
         if (nextDoctorId !== activeVisit.doctor_id) {
           await assignVisitDoctor(activeVisit.id, nextDoctorId);
@@ -124,7 +125,9 @@ export function EditPatientDialog({ patient, open, onOpenChange }: Props) {
       announceCoreDataChanged();
       toast.success("Patient updated", {
         description: activeVisit
-          ? "Profile saved. Doctor assignment updated for the active visit."
+          ? canAssignVisitDoctor(activeVisit.status)
+            ? "Profile saved. Doctor assignment updated for the active visit."
+            : "Profile saved. Doctor is locked because consultation already started."
           : "Profile saved. Check the patient in to assign a doctor to a visit.",
       });
       onOpenChange(false);
@@ -166,7 +169,11 @@ export function EditPatientDialog({ patient, open, onOpenChange }: Props) {
           <Field label="Phone number *" htmlFor="edit-phone"><Input id="edit-phone" required inputMode="tel" value={phone} onChange={(event) => setPhone(event.target.value)} /></Field>
           <div className="grid gap-1.5">
             <Label htmlFor="edit-doctor">Assigned doctor (optional)</Label>
-            <Select value={doctorId} onValueChange={setDoctorId} disabled={!activeVisit || loadingVisit}>
+            <Select
+              value={doctorId}
+              onValueChange={setDoctorId}
+              disabled={!activeVisit || loadingVisit || !canAssignVisitDoctor(activeVisit.status)}
+            >
               <SelectTrigger id="edit-doctor" className="w-full"><SelectValue placeholder={loadingVisit ? "Loading…" : "Unassigned"} /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
@@ -179,6 +186,9 @@ export function EditPatientDialog({ patient, open, onOpenChange }: Props) {
             </Select>
             {!loadingVisit && !activeVisit ? (
               <p className="text-xs text-fg-muted">No open visit. Doctor can be assigned at the next check-in.</p>
+            ) : null}
+            {!loadingVisit && activeVisit && !canAssignVisitDoctor(activeVisit.status) ? (
+              <p className="text-xs text-fg-muted">Doctor is locked after consultation starts.</p>
             ) : null}
           </div>
           {error ? <div role="alert" className="flex gap-2 rounded-lg border border-danger-fill/30 bg-danger-fill/10 p-3 text-sm text-danger-text"><AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{error}</div> : null}

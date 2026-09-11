@@ -40,7 +40,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const response = await authApi.login(email, password); const next = toSessionUser(response.user); setUser(next); return next;
   }, []);
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    await authApi.changePassword(currentPassword, newPassword); setUser((current) => current ? { ...current, mustChangePassword: false } : current);
+    const response = await authApi.changePassword(currentPassword, newPassword);
+    setUser(toSessionUser(response.user));
   }, []);
   const logout = useCallback(async () => { try { await authApi.logout(); } finally { setUser(null); } }, []);
   const value = useMemo<SessionContextValue>(() => ({ user, ready, login, changePassword, logout }), [user, ready, login, changePassword, logout]);

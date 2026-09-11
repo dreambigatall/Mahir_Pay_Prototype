@@ -4,3 +4,9 @@ coverage/
 .env
 .env.*
 !.env.example
+*.log
+tmp-*.js
+tmp-*.ts
+tmp-*.cjs
+tmp-*.mjs
+*.tsbuildinfo

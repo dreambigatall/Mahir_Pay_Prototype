@@ -92,7 +92,7 @@ export class AuthService {
     currentPassword: string,
     newPassword: string,
     metadata: RequestMetadata,
-  ): Promise<void> {
+  ): Promise<LoginResult> {
     const user = await this.store.findUserById(userId);
     if (!user || !(await verifyPassword(user.password_hash, currentPassword, this.options.passwordPepper))) {
       throw new AppError(400, "CURRENT_PASSWORD_INVALID", "Current password is incorrect");
@@ -110,6 +110,39 @@ export class AuthService {
       resourceType: "user",
       resourceId: userId,
     });
+
+    // Issue a fresh session so the user stays authenticated after the password change.
+    const refreshed = await this.store.findUserById(userId);
+    if (!refreshed || refreshed.status !== "active") {
+      throw new AppError(401, "INVALID_CREDENTIALS", "Email or password is incorrect");
+    }
+
+    const token = generateSessionToken();
+    const now = Date.now();
+    const expiresAt = new Date(now + this.options.sessionTtlHours * 60 * 60 * 1_000);
+    const idleExpiresAt = new Date(
+      Math.min(expiresAt.getTime(), now + this.options.sessionIdleMinutes * 60 * 1_000),
+    );
+    const sessionId = randomUUID();
+    await this.store.createSession({
+      id: sessionId,
+      userId: refreshed.id,
+      tokenHash: hashSessionToken(token),
+      expiresAt,
+      idleExpiresAt,
+      ipAddress: metadata.ipAddress,
+      userAgent: metadata.userAgent,
+    });
+    await this.audit.record({
+      ...metadata,
+      actorUserId: refreshed.id,
+      action: "auth.login_succeeded",
+      resourceType: "session",
+      resourceId: sessionId,
+      metadata: { reason: "password_changed" },
+    });
+
+    return { token, expiresAt, user: toPublicUser(refreshed) };
   }
 }
 

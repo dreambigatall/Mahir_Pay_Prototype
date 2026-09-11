@@ -22,15 +22,20 @@ export type TriageObservation = {
 export type CatalogItem = {
   id: string;
   item_code: string;
-  item_type: "consultation" | "lab_test" | "radiology" | "drug" | "procedure" | "lab_panel";
+  item_type: "consultation" | "lab_test" | "radiology" | "drug" | "procedure" | "lab_panel" | "supply";
   name: string;
   description: string | null;
   unit: string | null;
   price: string;
   track_inventory: boolean;
+  supply_group_id: string | null;
+  supply_group_name: string | null;
   active: boolean;
   quantity_on_hand: string | null;
   reorder_level: string | null;
+  usable_quantity: string | null;
+  next_expiry: string | null;
+  suggested_order_quantity: string | null;
 };
 
 export type PanelMember = {
@@ -149,5 +154,4 @@ export function getVisitPrescriptions(visitId: string) {
 export function createPrescription(input: { encounterId: string; notes?: string; items: Array<{ catalogItemId: string; dosage: string; frequency: string; duration: string; instructions?: string; quantity: number }> }) {
   return apiRequest<{ item: Prescription }>("/pharmacy/prescriptions", { method: "POST", body: JSON.stringify(input) });
 }
-
 

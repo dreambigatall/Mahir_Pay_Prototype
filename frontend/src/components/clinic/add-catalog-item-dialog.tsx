@@ -24,8 +24,10 @@ import { announceCoreDataChanged } from "@/lib/core-events";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+type AddableCatalogType = Exclude<CatalogItemType, "lab_panel" | "supply">;
+
 const typeOptions: {
-  type: CatalogItemType;
+  type: AddableCatalogType;
   label: string;
   description: string;
   icon: typeof FlaskConical;
@@ -96,10 +98,11 @@ export function AddCatalogItemDialog({
     setTrackInventory(true);
     setOpeningQuantity("");
     setReorderLevel("");
-    setType(defaultType);
+    setType(defaultType === "lab_panel" || defaultType === "supply" ? "lab_test" : defaultType);
   }
 
   const isDrug = type === "drug";
+  const tracksStock = isDrug && trackInventory;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -108,10 +111,14 @@ export function AddCatalogItemDialog({
       toast.error("Please provide a valid name and price.");
       return;
     }
+    if (type === "lab_panel" || type === "supply") {
+      toast.error("Use the clinic supplies workspace to add internal stock.");
+      return;
+    }
 
     const opening = openingQuantity.trim() ? Number(openingQuantity) : 0;
     const reorder = reorderLevel.trim() ? Number(reorderLevel) : 0;
-    if (isDrug && trackInventory) {
+    if (tracksStock) {
       if (Number.isNaN(opening) || opening < 0 || Number.isNaN(reorder) || reorder < 0) {
         toast.error("Enter valid opening quantity and reorder level.");
         return;
@@ -124,14 +131,14 @@ export function AddCatalogItemDialog({
         itemType: type,
         name: name.trim(),
         price: amount,
-        unit: isDrug && unit.trim() ? unit.trim() : undefined,
-        trackInventory: isDrug && trackInventory,
-        openingQuantity: isDrug && trackInventory ? opening : 0,
-        reorderLevel: isDrug && trackInventory ? reorder : 0,
+        unit: tracksStock && unit.trim() ? unit.trim() : undefined,
+        trackInventory: tracksStock,
+        openingQuantity: tracksStock ? opening : 0,
+        reorderLevel: tracksStock ? reorder : 0,
       });
       announceCoreDataChanged();
       onSaved?.();
-      toast.success(`${currentOption.label} added to catalog`, {
+      toast.success(`${currentOption.label} added`, {
         description: `"${name.trim()}" priced at ${formatMoney(amount)} is now active.`,
       });
       setOpen(false);
@@ -163,7 +170,7 @@ export function AddCatalogItemDialog({
         <DialogHeader>
           <DialogTitle>Add to service catalog</DialogTitle>
           <DialogDescription>
-            Configure a new diagnostic test, pharmacy drug, or consultation fee with standard clinic pricing.
+            Configure a billed service or medication. Clinic supplies are added from Admin → Inventory.
           </DialogDescription>
         </DialogHeader>
 
@@ -173,10 +180,9 @@ export function AddCatalogItemDialog({
             <RadioGroup
               value={type}
               onValueChange={(value) => {
-                const next = value as CatalogItemType;
+                const next = value as AddableCatalogType;
                 setType(next);
-                if (next !== "drug") setTrackInventory(false);
-                else setTrackInventory(true);
+                setTrackInventory(next === "drug");
               }}
               className="grid gap-2.5 sm:grid-cols-2"
             >
@@ -253,10 +259,10 @@ export function AddCatalogItemDialog({
                 />
                 <div className="space-y-1">
                   <Label htmlFor="track-inventory" className="text-[13px] font-medium text-foreground">
-                    Track pharmacy inventory
+                    Track medication inventory
                   </Label>
                   <p className="text-[11px] text-fg-muted">
-                    Enables stock counts on the pharmacy inventory board and batch receiving.
+                    Enables stock counts on Admin → Inventory and batch receiving. Dispense after payment reduces stock.
                   </p>
                 </div>
               </div>

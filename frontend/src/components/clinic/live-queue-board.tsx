@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
-import { listBillableVisits, type BillableVisit } from "@/lib/api/billing";
+import { listBillableVisits, listPaidInvoicesToday, type BackendInvoice, type BillableVisit } from "@/lib/api/billing";
 import { listQueue, sendVisitToDoctor, type BackendQueueEntry, type QueueStation, type VisitPriority } from "@/lib/api/workflow";
 import { CORE_DATA_CHANGED_EVENT, announceCoreDataChanged } from "@/lib/core-events";
+import { formatMoney } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ const stations: Array<{ id: QueueStation; label: string; description: string }> 
 export function LiveQueueBoard() {
   const { user } = useSession();
   const [entries, setEntries] = useState<BackendQueueEntry[]>([]);
+  const [paidToday, setPaidToday] = useState<BackendInvoice[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,9 +41,10 @@ export function LiveQueueBoard() {
     quiet ? setRefreshing(true) : setLoading(true);
     setError("");
     try {
-      const [queueResponses, billable] = await Promise.all([
+      const [queueResponses, billable, paid] = await Promise.all([
         Promise.all(stations.map(({ id }) => listQueue(id))),
         listBillableVisits(),
+        listPaidInvoicesToday(),
       ]);
       const queueEntries = queueResponses.flatMap((response) => response.items);
       const billingVisitIds = new Set(
@@ -51,6 +54,7 @@ export function LiveQueueBoard() {
         .filter((visit) => !billingVisitIds.has(visit.id))
         .map(billableVisitToQueueEntry);
       setEntries([...queueEntries, ...billingFromWorklist]);
+      setPaidToday(paid.items);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "The live queue could not be loaded.");
     } finally {
@@ -82,6 +86,15 @@ export function LiveQueueBoard() {
     inService: entries.filter((entry) => entry.status === "called" || entry.status === "in_service").length,
     urgent: entries.filter((entry) => entry.priority === "urgent" || entry.priority === "emergency").length,
   }), [entries]);
+
+  const paidTodayFiltered = useMemo(() => {
+    const value = query.trim().toLowerCase();
+    if (!value) return paidToday;
+    return paidToday.filter((invoice) =>
+      [invoice.patient_name, invoice.visit_number, invoice.invoice_number]
+        .some((field) => field.toLowerCase().includes(value)),
+    );
+  }, [paidToday, query]);
 
   async function sendToDoctor(entry: BackendQueueEntry) {
     setSendingVisitId(entry.visit_id);
@@ -127,7 +140,7 @@ export function LiveQueueBoard() {
       {error ? <div role="alert" className="flex items-center justify-between gap-4 rounded-xl border border-danger-fill/30 bg-danger-fill/10 p-4 text-sm text-danger-text"><span className="flex items-center gap-2"><AlertCircle className="size-4 shrink-0" aria-hidden="true" />{error}</span><Button type="button" variant="outline" size="sm" onClick={() => void load()}>Retry</Button></div> : null}
 
       <div className="overflow-x-auto pb-2">
-        <div className="grid min-w-max grid-cols-6 gap-3">
+        <div className="grid min-w-max grid-cols-7 gap-3">
           {stations.map((station) => {
             const cards = filtered.filter((entry) => entry.station === station.id);
             return (
@@ -152,9 +165,25 @@ export function LiveQueueBoard() {
               </section>
             );
           })}
+          <section className="w-[310px] rounded-2xl border border-border/70 bg-surface-1 p-4" aria-labelledby="station-paid-today">
+            <header className="mb-4 flex items-start justify-between border-b border-border/60 pb-3">
+              <div>
+                <h2 id="station-paid-today" className="font-heading text-base font-semibold">Paid today</h2>
+                <p className="mt-0.5 text-xs text-fg-muted">Completed billing</p>
+              </div>
+              <span className="rounded-full bg-secondary px-2.5 py-1 font-mono text-xs font-semibold">{paidTodayFiltered.length}</span>
+            </header>
+            <div className="space-y-3">
+              {paidTodayFiltered.length === 0 ? (
+                <div className="flex min-h-28 items-center justify-center rounded-xl border border-dashed border-border px-4 text-center text-xs text-fg-muted">No paid invoices today</div>
+              ) : paidTodayFiltered.map((invoice) => (
+                <PaidTodayCard key={invoice.id} invoice={invoice} />
+              ))}
+            </div>
+          </section>
         </div>
       </div>
-      <p className="text-xs text-fg-muted">Use “Send to doctor” on triage cards after registration. Assigned doctors then see those patients on their queue.</p>
+      <p className="text-xs text-fg-muted">After full payment, visits leave Billing and move into Paid today.</p>
     </section>
   );
 }
@@ -209,6 +238,40 @@ function QueueCard({
       </div>
     </article>
   );
+}
+
+function PaidTodayCard({ invoice }: { invoice: BackendInvoice }) {
+  return (
+    <Link
+      href={`/receptionist/billing/${invoice.visit_id}`}
+      className="block rounded-xl border border-border/70 bg-background p-4 shadow-sm transition-colors hover:border-primary/40 hover:bg-surface-2"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-semibold">{invoice.patient_name}</h3>
+          <p className="mt-1 font-mono text-xs text-fg-muted">{invoice.visit_number}</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-success-fill/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-success-text">Paid</span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border/60 pt-3 text-xs">
+        <div>
+          <p className="text-fg-muted">Invoice</p>
+          <p className="mt-0.5 font-mono font-medium">{invoice.invoice_number}</p>
+        </div>
+        <div>
+          <p className="text-fg-muted">Total</p>
+          <p className="mt-0.5 font-mono font-medium tabular-nums">{formatMoney(Number(invoice.total))}</p>
+        </div>
+      </div>
+      <p className="mt-2 text-xs text-fg-secondary">
+        {invoice.paid_at ? formatPaidAt(invoice.paid_at) : "Paid today"}
+      </p>
+    </Link>
+  );
+}
+
+function formatPaidAt(value: string) {
+  return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(value));
 }
 
 function PriorityBadge({ priority }: { priority: BackendQueueEntry["priority"] }) {

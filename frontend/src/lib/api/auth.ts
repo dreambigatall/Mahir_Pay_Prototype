@@ -30,7 +30,7 @@ export function logout() {
 }
 
 export function changePassword(currentPassword: string, newPassword: string) {
-  return apiRequest<void>("/auth/change-password", {
+  return apiRequest<{ user: BackendUser }>("/auth/change-password", {
     method: "POST",
     body: JSON.stringify({ currentPassword, newPassword }),
   });

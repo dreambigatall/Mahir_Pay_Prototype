@@ -54,14 +54,20 @@ export function createAuthRouter(service: AuthService, store: AuthStore, env: En
     sessionAuth,
     validateBody(changePasswordSchema),
     asyncHandler(async (request, response) => {
-      await service.changePassword(
+      const result = await service.changePassword(
         request.auth!.userId,
         request.body.currentPassword,
         request.body.newPassword,
         metadataFrom(request),
       );
-      clearSessionCookie(response, env);
-      response.status(204).end();
+      response.cookie(env.SESSION_COOKIE_NAME, result.token, {
+        httpOnly: true,
+        secure: env.NODE_ENV === "production",
+        sameSite: "lax",
+        expires: result.expiresAt,
+        path: "/",
+      });
+      response.status(200).json({ user: result.user });
     }),
   );
   return router;

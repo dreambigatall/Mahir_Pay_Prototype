@@ -10,6 +10,8 @@ export type BillableVisit = {
   reason: string;
   priority: string;
   checked_in_at: Date;
+  pending_rx_count: number;
+  pending_rx_summary: string | null;
 };
 
 export type SuggestedCharge = {
@@ -27,7 +29,12 @@ export class CashierRepository {
     const result = await this.pool.query<BillableVisit>(
       `select v.id,v.visit_number,v.patient_id,p.medical_record_number,
          concat_ws(' ',p.first_name,p.middle_name,p.last_name) as patient_name,
-         d.full_name as doctor_name,v.reason,v.priority,v.checked_in_at
+         d.full_name as doctor_name,v.reason,v.priority,v.checked_in_at,
+         coalesce((select count(*)::int from clinic.prescriptions r where r.visit_id=v.id and r.status='awaiting_payment'),0) pending_rx_count,
+         (select string_agg(distinct i.drug_name, ', ' order by i.drug_name)
+          from clinic.prescriptions r
+          join clinic.prescription_items i on i.prescription_id=r.id
+          where r.visit_id=v.id and r.status='awaiting_payment') pending_rx_summary
        from clinic.visits v
        join clinic.patients p on p.id=v.patient_id
        left join clinic.users d on d.id=v.doctor_id

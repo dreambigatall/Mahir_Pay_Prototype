@@ -6,6 +6,7 @@ import {
   FlaskConical,
   Layers,
   Loader2,
+  Package,
   PackageOpen,
   Pill,
   Plus,
@@ -58,6 +59,7 @@ const typeBadges: Record<
   procedure: { label: "Injection / vaccine", role: "clinical", icon: Syringe },
   radiology: { label: "Radiology", role: "clinical", icon: FlaskConical },
   lab_panel: { label: "Lab panel", role: "clinical", icon: Layers },
+  supply: { label: "Clinic supply", role: "info", icon: Package },
 };
 
 function StockCell({ item }: { item: CatalogItem }) {
@@ -112,19 +114,24 @@ export default function AdminCatalogPage() {
     return () => window.removeEventListener(CORE_DATA_CHANGED_EVENT, refresh);
   }, [load]);
 
+  const billedCatalog = useMemo(
+    () => catalog.filter((item) => item.item_type !== "supply"),
+    [catalog],
+  );
+
   const stats = useMemo(() => {
-    const total = catalog.length;
-    const labCount = catalog.filter((item) => item.item_type === "lab_test" && item.active).length;
-    const drugCount = catalog.filter((item) => item.item_type === "drug" && item.active).length;
-    const consultCount = catalog.filter((item) => item.item_type === "consultation" && item.active).length;
-    const procedureCount = catalog.filter((item) => item.item_type === "procedure" && item.active).length;
-    const panelCount = catalog.filter((item) => item.item_type === "lab_panel" && item.active).length;
-    const inactiveCount = catalog.filter((item) => !item.active).length;
+    const total = billedCatalog.length;
+    const labCount = billedCatalog.filter((item) => item.item_type === "lab_test" && item.active).length;
+    const drugCount = billedCatalog.filter((item) => item.item_type === "drug" && item.active).length;
+    const consultCount = billedCatalog.filter((item) => item.item_type === "consultation" && item.active).length;
+    const procedureCount = billedCatalog.filter((item) => item.item_type === "procedure" && item.active).length;
+    const panelCount = billedCatalog.filter((item) => item.item_type === "lab_panel" && item.active).length;
+    const inactiveCount = billedCatalog.filter((item) => !item.active).length;
     return { total, labCount, drugCount, consultCount, procedureCount, panelCount, inactiveCount };
-  }, [catalog]);
+  }, [billedCatalog]);
 
   const filteredItems = useMemo(() => {
-    let list = catalog;
+    let list = billedCatalog;
 
     if (tab === "inactive") {
       list = list.filter((item) => !item.active);
@@ -143,7 +150,7 @@ export default function AdminCatalogPage() {
     }
 
     return list;
-  }, [catalog, tab, search]);
+  }, [billedCatalog, tab, search]);
 
   if (loading) {
     return (
@@ -231,7 +238,7 @@ export default function AdminCatalogPage() {
             <SelectValue placeholder="Filter category" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All ({catalog.length})</SelectItem>
+            <SelectItem value="all">All ({billedCatalog.length})</SelectItem>
             <SelectItem value="lab_test">Lab tests ({catalog.filter((i) => i.item_type === "lab_test").length})</SelectItem>
             <SelectItem value="drug">Medications ({catalog.filter((i) => i.item_type === "drug").length})</SelectItem>
             <SelectItem value="consultation">Consultations ({catalog.filter((i) => i.item_type === "consultation").length})</SelectItem>

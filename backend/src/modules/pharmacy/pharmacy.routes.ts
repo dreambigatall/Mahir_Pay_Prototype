@@ -1,3 +1,71 @@
-import{Router,type Request}from"express";import{z}from"zod";import type{Environment}from"../../config/env";import{authenticate}from"../../middleware/authenticate";import{requirePermission}from"../../middleware/authorize";import{requirePasswordChanged}from"../../middleware/require-password-changed";import{validateBody}from"../../middleware/validate";import{asyncHandler}from"../../shared/http/async-handler";import type{AuthStore}from"../auth/auth.repository";import type{RequestMetadata}from"../audit/audit.repository";import{dispenseSchema,prescriptionCreateSchema}from"./pharmacy.schemas";import{PharmacyService}from"./pharmacy.service";
-export function createPharmacyRouter(s:PharmacyService,a:AuthStore,e:Environment){const r=Router();r.use(authenticate(a,e.SESSION_COOKIE_NAME,e.SESSION_IDLE_MINUTES),requirePasswordChanged);r.post("/prescriptions",requirePermission("prescription.create"),validateBody(prescriptionCreateSchema),asyncHandler(async(q,p)=>p.status(201).json({item:await s.create(q.auth!.userId,q.body,meta(q))})));r.get("/prescriptions/by-visit/:visitId",requirePermission("encounter.read"),asyncHandler(async(q,p)=>p.json({items:await s.byVisit(uuid(q.params.visitId))})));r.get("/worklist",requirePermission("medication.dispense"),asyncHandler(async(q,p)=>p.json({items:await s.list(z.coerce.number().int().positive().max(200).default(100).parse(q.query.limit))})));r.post("/prescriptions/:id/dispense",requirePermission("medication.dispense"),validateBody(dispenseSchema),asyncHandler(async(q,p)=>p.json({item:await s.dispense(uuid(q.params.id),q.body.items,q.body.notes,q.auth!.userId,meta(q))})));return r;}
-function uuid(v:unknown){return z.string().uuid().parse(v);}function meta(q:Request):RequestMetadata{return{requestId:q.requestId,ipAddress:q.ip,userAgent:q.get("user-agent")};}
+import { Router, type Request } from "express";
+import { z } from "zod";
+import type { Environment } from "../../config/env";
+import { authenticate } from "../../middleware/authenticate";
+import { requireAnyPermission } from "../../middleware/authorize-any";
+import { requirePermission } from "../../middleware/authorize";
+import { requirePasswordChanged } from "../../middleware/require-password-changed";
+import { validateBody } from "../../middleware/validate";
+import { asyncHandler } from "../../shared/http/async-handler";
+import type { AuthStore } from "../auth/auth.repository";
+import type { RequestMetadata } from "../audit/audit.repository";
+import { dispenseSchema, prescriptionCreateSchema } from "./pharmacy.schemas";
+import { PharmacyService } from "./pharmacy.service";
+
+export function createPharmacyRouter(s: PharmacyService, a: AuthStore, e: Environment) {
+  const r = Router();
+  r.use(authenticate(a, e.SESSION_COOKIE_NAME, e.SESSION_IDLE_MINUTES), requirePasswordChanged);
+  r.post(
+    "/prescriptions",
+    requirePermission("prescription.create"),
+    validateBody(prescriptionCreateSchema),
+    asyncHandler(async (q, p) =>
+      p.status(201).json({ item: await s.create(q.auth!.userId, q.body, meta(q)) }),
+    ),
+  );
+  r.get(
+    "/prescriptions/by-visit/:visitId",
+    requirePermission("encounter.read"),
+    asyncHandler(async (q, p) => p.json({ items: await s.byVisit(uuid(q.params.visitId)) })),
+  );
+  r.get(
+    "/prescriptions/:id",
+    requireAnyPermission("medication.dispense", "encounter.read", "billing.read"),
+    asyncHandler(async (q, p) => p.json({ item: await s.byId(uuid(q.params.id)) })),
+  );
+  r.get(
+    "/worklist",
+    requirePermission("medication.dispense"),
+    asyncHandler(async (q, p) =>
+      p.json({
+        items: await s.list(
+          z.coerce.number().int().positive().max(200).default(100).parse(q.query.limit),
+        ),
+      }),
+    ),
+  );
+  r.post(
+    "/prescriptions/:id/dispense",
+    requirePermission("medication.dispense"),
+    validateBody(dispenseSchema),
+    asyncHandler(async (q, p) =>
+      p.json({
+        item: await s.dispense(
+          uuid(q.params.id),
+          q.body.items,
+          q.body.notes,
+          q.auth!.userId,
+          meta(q),
+        ),
+      }),
+    ),
+  );
+  return r;
+}
+
+function uuid(v: unknown) {
+  return z.string().uuid().parse(v);
+}
+function meta(q: Request): RequestMetadata {
+  return { requestId: q.requestId, ipAddress: q.ip, userAgent: q.get("user-agent") };
+}

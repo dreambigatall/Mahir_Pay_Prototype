@@ -23,8 +23,32 @@ export function listLabPanels(options?: { includeInactive?: boolean; signal?: Ab
   return apiRequest<{ items: LabPanel[] }>(`/catalog/panels?${query}`, { signal: options?.signal });
 }
 
+export type SupplyGroup = { id: string; name: string; item_count: string };
+
+export function listSupplyGroups(signal?: AbortSignal) {
+  return apiRequest<{ items: SupplyGroup[] }>("/catalog/supply-groups", { signal });
+}
+
+export function createSupplyGroup(name: string) {
+  return apiRequest<{ item: SupplyGroup }>("/catalog/supply-groups", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function createSupplies(input: {
+  groupId?: string;
+  groupName?: string;
+  items: Array<{ name: string; unit?: string; openingQuantity?: number; reorderLevel?: number }>;
+}) {
+  return apiRequest<{ items: CatalogItem[] }>("/catalog/supplies", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export function createCatalogItem(input: {
-  itemType: Exclude<CatalogItemType, "lab_panel">;
+  itemType: Exclude<CatalogItemType, "lab_panel" | "supply">;
   name: string;
   price: number;
   description?: string;

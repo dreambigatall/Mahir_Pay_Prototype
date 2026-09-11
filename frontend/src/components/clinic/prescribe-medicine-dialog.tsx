@@ -54,7 +54,7 @@ export function PrescribeMedicineDialog({
         <DialogHeader>
           <DialogTitle>Prescribe Medication</DialogTitle>
           <DialogDescription>
-            Select medicines from the clinic catalog and add instructions. They will be sent to the pharmacy via reception.
+            Select medicines from the clinic catalog and add instructions. Pharmacy can preview immediately; dispensing waits for reception payment.
           </DialogDescription>
         </DialogHeader>
         {activeDrugs.length === 0 ? (
@@ -127,7 +127,7 @@ export function PrescribeMedicineDialog({
                 prescriptions,
               });
               toast.success("Prescriptions created", {
-                description: "Reception must approve payment before pharmacy dispensation.",
+                description: "After reception collects full payment, tracked stock is deducted automatically.",
               });
               setOpen(false);
               reset();

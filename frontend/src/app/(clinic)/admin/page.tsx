@@ -5,6 +5,7 @@ import {
   Activity,
   ArrowRight,
   BarChart3,
+  Boxes,
   CheckCircle2,
   Clock,
   FlaskConical,
@@ -49,7 +50,13 @@ export default function AdminDashboardPage() {
         title="Operations"
         description="Live outpatient volume, practice flow, revenue, and queue performance."
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/inventory">
+                <Boxes className="mr-1.5 size-3.5" />
+                Inventory
+              </Link>
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href="/admin/reports">
                 <BarChart3 className="mr-1.5 size-3.5" />
@@ -159,6 +166,17 @@ export default function AdminDashboardPage() {
               Management shortcuts
             </h3>
             <div className="mt-3 space-y-1.5">
+              <Link
+                href="/admin/inventory"
+                className="flex items-center justify-between rounded-lg border border-border bg-surface-1/70 px-3 py-2 text-[13px] text-fg-secondary transition-colors hover:border-border-strong hover:text-foreground"
+              >
+                <div className="flex items-center gap-2">
+                  <Boxes className="size-4 text-fg-muted" />
+                  <span>Medication inventory & batches</span>
+                </div>
+                <ArrowRight className="size-3.5 text-fg-muted" />
+              </Link>
+
               <Link
                 href="/admin/catalog"
                 className="flex items-center justify-between rounded-lg border border-border bg-surface-1/70 px-3 py-2 text-[13px] text-fg-secondary transition-colors hover:border-border-strong hover:text-foreground"

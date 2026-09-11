@@ -1,13 +1,20 @@
 import type{Pool,PoolClient}from"pg";import{withTransaction}from"../../database/transaction";import type{Queryable}from"../../database/types";import{AppError}from"../../shared/errors/app-error";import type{AuditEventInput}from"../audit/audit.repository";import{AuditRepository}from"../audit/audit.repository";
-export type Invoice={id:string;invoice_number:string;visit_id:string;patient_id:string;visit_number:string;patient_name:string;status:string;subtotal:string;discount_amount:string;total:string;amount_paid:string;balance_due:string;discount_reason:string|null;issued_at:Date;paid_at:Date|null;lines:Array<Record<string,unknown>>;payments:Array<Record<string,unknown>>};
+import{fulfillPaidPrescription}from"../pharmacy/prescription-fulfillment";
+import{completeBillingQueue}from"../workflow/queue-helpers";
+export type Invoice={id:string;invoice_number:string;visit_id:string;patient_id:string;visit_number:string;patient_name:string;status:string;subtotal:string;discount_amount:string;total:string;amount_paid:string;balance_due:string;discount_reason:string|null;issued_at:Date;paid_at:Date|null;pending_rx_count:number;pending_rx_summary:string|null;lines:Array<Record<string,unknown>>;payments:Array<Record<string,unknown>>};
 const SELECT_INVOICE=`select i.id,i.invoice_number,i.visit_id,i.patient_id,v.visit_number,concat_ws(' ',p.first_name,p.middle_name,p.last_name) patient_name,i.status,i.subtotal::text,i.discount_amount::text,i.total::text,i.amount_paid::text,(i.total-i.amount_paid)::text balance_due,i.discount_reason,i.issued_at,i.paid_at,
+ coalesce((select count(*)::int from clinic.prescriptions r where r.visit_id=i.visit_id and r.status='awaiting_payment'),0) pending_rx_count,
+ (select string_agg(distinct x.drug_name, ', ' order by x.drug_name)
+  from clinic.prescriptions r
+  join clinic.prescription_items x on x.prescription_id=r.id
+  where r.visit_id=i.visit_id and r.status='awaiting_payment') pending_rx_summary,
  coalesce((select jsonb_agg(jsonb_build_object('id',l.id,'catalog_item_id',l.catalog_item_id,'line_type',l.line_type,'description',l.description,'quantity',l.quantity,'unit_price',l.unit_price,'line_total',l.line_total)order by l.created_at,l.id)from clinic.invoice_lines l where l.invoice_id=i.id),'[]'::jsonb)lines,
  coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'receipt_number',x.receipt_number,'amount',x.amount,'method',x.method,'reference',x.reference,'status',x.status,'paid_at',x.paid_at)order by x.paid_at,x.id)from clinic.payments x where x.invoice_id=i.id),'[]'::jsonb)payments
  from clinic.invoices i join clinic.visits v on v.id=i.visit_id join clinic.patients p on p.id=i.patient_id`;
 export class BillingRepository{constructor(private readonly pool:Pool,private readonly audit:AuditRepository){}
  async issue(input:{visitId:string;discountAmount:number;discountReason?:string;items:Array<{catalogItemId:string;quantity:number;description?:string}>},actor:string,discountApproved:boolean,event:AuditEventInput):Promise<Invoice>{return withTransaction(this.pool,async c=>{
   const vr=await c.query<{patient_id:string;status:string}>("select patient_id,status from clinic.visits where id=$1 for update",[input.visitId]);const v=vr.rows[0];if(!v)throw new AppError(404,"VISIT_NOT_FOUND","Visit was not found");if(["cancelled","completed","billed"].includes(v.status))throw new AppError(409,"VISIT_NOT_BILLABLE","Visit cannot be invoiced");if(input.discountAmount>0&&!discountApproved)throw new AppError(403,"DISCOUNT_APPROVAL_REQUIRED","You do not have permission to approve discounts");
-  const catalog=await c.query<{id:string;item_type:string;name:string;price:string}>("select id,item_type,name,price::text from clinic.catalog_items where id=any($1::uuid[]) and active=true order by id",[input.items.map(x=>x.catalogItemId)]);const map=new Map(catalog.rows.map(x=>[x.id,x]));if(map.size!==new Set(input.items.map(x=>x.catalogItemId)).size)throw new AppError(400,"CATALOG_ITEM_INVALID","One or more invoice items are invalid");
+  const catalog=await c.query<{id:string;item_type:string;name:string;price:string}>("select id,item_type,name,price::text from clinic.catalog_items where id=any($1::uuid[]) and active=true order by id",[input.items.map(x=>x.catalogItemId)]);const map=new Map(catalog.rows.map(x=>[x.id,x]));if(map.size!==new Set(input.items.map(x=>x.catalogItemId)).size)throw new AppError(400,"CATALOG_ITEM_INVALID","One or more invoice items are invalid");if([...map.values()].some(x=>x.item_type==="supply"||x.item_type==="lab_panel"))throw new AppError(400,"CATALOG_ITEM_NOT_BILLABLE","Clinic supplies and lab panels cannot be billed as invoice lines");
   const ir=await c.query<{id:string}>(`insert into clinic.invoices(visit_id,patient_id,status,subtotal,discount_amount,total,discount_reason,discount_approved_by,issued_by)
    values($1,$2,'issued',0,$3::numeric,(0::numeric-$3::numeric),$4,$5,$6) returning id`,[input.visitId,v.patient_id,input.discountAmount,input.discountReason??null,input.discountAmount>0?actor:null,actor]);const id=ir.rows[0]!.id;
   for(const x of input.items){const item=map.get(x.catalogItemId);if(!item)throw new AppError(400,"CATALOG_ITEM_INVALID","Invoice item is invalid");await c.query(`insert into clinic.invoice_lines(invoice_id,catalog_item_id,line_type,description,quantity,unit_price,line_total)
@@ -26,4 +33,41 @@ export class BillingRepository{constructor(private readonly pool:Pool,private re
  });}
  private async find(id:string,db:Queryable){const r=await db.query<Invoice>(`${SELECT_INVOICE} where i.id=$1`,[id]);return r.rows[0]??null;}
 }
-async function releaseAfterPayment(c:PoolClient,visitId:string,actor:string){const rx=await c.query("update clinic.prescriptions set status='payment_approved',updated_at=now() where visit_id=$1 and status='awaiting_payment' returning id",[visitId]);if(rx.rowCount){await c.query("update clinic.visits set status='medication_prescribed',updated_at=now() where id=$1",[visitId]);const active=await c.query("select 1 from clinic.queue_entries where visit_id=$1 and status in('waiting','called','in_service')",[visitId]);if(!active.rowCount){const q=await c.query<{id:string}>("insert into clinic.queue_entries(visit_id,station,priority)select id,'pharmacy',priority from clinic.visits where id=$1 returning id",[visitId]);await c.query("insert into clinic.queue_events(queue_entry_id,from_status,to_status,actor_user_id,notes)values($1,null,'waiting',$2,'Invoice paid')",[q.rows[0]!.id,actor]);}}else await c.query("update clinic.visits set status='billed',completed_at=now(),updated_at=now() where id=$1",[visitId]);}
+async function releaseAfterPayment(c:PoolClient,visitId:string,actor:string){
+  // Billing money work is done — remove from the live billing queue immediately.
+  await completeBillingQueue(c,visitId,actor,"Invoice paid in full");
+  const rx=await c.query<{id:string}>("update clinic.prescriptions set status='payment_approved',updated_at=now() where visit_id=$1 and status='awaiting_payment' returning id",[visitId]);
+  if(!rx.rowCount){
+    await c.query("update clinic.visits set status='billed',completed_at=now(),updated_at=now() where id=$1",[visitId]);
+    return;
+  }
+  // Deduct medication stock on full payment so admin inventory stays accurate when reception
+  // completes the visit. If usable pharmacy stock is short, keep the Rx for pharmacy instead
+  // of blocking payment collection.
+  let pendingPharmacy=false;
+  for(const row of rx.rows){
+    const savepoint=`fulfill_${row.id.replace(/-/g,"")}`;
+    await c.query(`savepoint ${savepoint}`);
+    try{
+      const status=await fulfillPaidPrescription(c,row.id,actor);
+      await c.query(`release savepoint ${savepoint}`);
+      if(status!=="dispensed")pendingPharmacy=true;
+    }catch(error){
+      await c.query(`rollback to savepoint ${savepoint}`);
+      if(isDeferredPharmacyStockError(error)){pendingPharmacy=true;continue;}
+      throw error;
+    }
+  }
+  if(pendingPharmacy){
+    await c.query("update clinic.visits set status='medication_prescribed',updated_at=now() where id=$1",[visitId]);
+    const active=await c.query("select 1 from clinic.queue_entries where visit_id=$1 and status in('waiting','called','in_service')",[visitId]);
+    if(!active.rowCount){
+      const q=await c.query<{id:string}>("insert into clinic.queue_entries(visit_id,station,priority)select id,'pharmacy',priority from clinic.visits where id=$1 returning id",[visitId]);
+      await c.query("insert into clinic.queue_events(queue_entry_id,from_status,to_status,actor_user_id,notes)values($1,null,'waiting',$2,'Invoice paid')",[q.rows[0]!.id,actor]);
+    }
+  }
+}
+
+function isDeferredPharmacyStockError(error:unknown){
+  return error instanceof AppError&&["INSUFFICIENT_USABLE_STOCK","INVENTORY_BALANCE_MISSING"].includes(error.code);
+}

@@ -1,10 +1,10 @@
 import { apiRequest } from "@/lib/api/client";
 
-export type BillableVisit = { id: string; visit_number: string; patient_id: string; medical_record_number: string; patient_name: string; doctor_name: string | null; reason: string; priority: string; checked_in_at: string };
+export type BillableVisit = { id: string; visit_number: string; patient_id: string; medical_record_number: string; patient_name: string; doctor_name: string | null; reason: string; priority: string; checked_in_at: string; pending_rx_count?: number; pending_rx_summary?: string | null };
 export type SuggestedCharge = { catalog_item_id: string; description: string; quantity: string; item_type: string; unit_price: string };
 export type InvoiceLine = { id: string; catalog_item_id: string; line_type: string; description: string; quantity: string; unit_price: string; line_total: string };
 export type Payment = { id: string; receipt_number: string; amount: string; method: string; reference: string | null; status: string; paid_at: string };
-export type BackendInvoice = { id: string; invoice_number: string; visit_id: string; patient_id: string; visit_number: string; patient_name: string; status: "issued" | "partially_paid" | "paid" | "void"; subtotal: string; discount_amount: string; total: string; amount_paid: string; balance_due: string; discount_reason: string | null; issued_at: string; paid_at: string | null; lines: InvoiceLine[]; payments: Payment[] };
+export type BackendInvoice = { id: string; invoice_number: string; visit_id: string; patient_id: string; visit_number: string; patient_name: string; status: "issued" | "partially_paid" | "paid" | "void"; subtotal: string; discount_amount: string; total: string; amount_paid: string; balance_due: string; discount_reason: string | null; issued_at: string; paid_at: string | null; pending_rx_count?: number; pending_rx_summary?: string | null; lines: InvoiceLine[]; payments: Payment[] };
 
 export function listBillableVisits(signal?: AbortSignal) { return apiRequest<{ items: BillableVisit[] }>("/billing/worklist?limit=200", { signal }); }
 export function listOutstandingInvoices(signal?: AbortSignal) { return apiRequest<{ items: BackendInvoice[] }>("/billing/invoices/outstanding?limit=200", { signal }); }

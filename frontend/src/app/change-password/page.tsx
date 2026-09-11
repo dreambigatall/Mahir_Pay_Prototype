@@ -69,14 +69,14 @@ export default function ChangePasswordPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="new-password">New password</Label>
-              <Input id="new-password" type="password" autoComplete="new-password" minLength={12} required value={newPassword} onChange={(event) => setNewPassword(event.target.value)} aria-describedby="password-help" />
+              <Input id="new-password" type="password" autoComplete="new-password" minLength={6} required value={newPassword} onChange={(event) => setNewPassword(event.target.value)} aria-describedby="password-help" />
               <p id="password-help" className="text-xs leading-5 text-fg-muted">
-                Use at least 12 characters with uppercase, lowercase, a number, and a symbol.
+                Use at least 6 characters. Letters, numbers, or a mix are all fine.
               </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="confirm-password">Confirm new password</Label>
-              <Input id="confirm-password" type="password" autoComplete="new-password" minLength={12} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+              <Input id="confirm-password" type="password" autoComplete="new-password" minLength={6} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
             </div>
             {error ? <div role="alert" className="rounded-lg border border-danger-fill/30 bg-danger-fill/10 px-3 py-2.5 text-sm text-danger-text">{error}</div> : null}
             <Button type="submit" className="min-h-11 w-full" disabled={submitting}>

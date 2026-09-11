@@ -26,3 +26,31 @@ export async function enqueueBillingIfNeeded(
     [created.rows[0]!.id, actorUserId, notes],
   );
 }
+
+/** Close active billing queue tickets once the invoice is fully paid. */
+export async function completeBillingQueue(
+  client: PoolClient,
+  visitId: string,
+  actorUserId: string,
+  notes = "Invoice paid in full",
+): Promise<void> {
+  const active = await client.query<{ id: string; status: string }>(
+    `select id, status from clinic.queue_entries
+     where visit_id=$1 and station='billing' and status in ('waiting','called','in_service')
+     for update`,
+    [visitId],
+  );
+  for (const entry of active.rows) {
+    await client.query(
+      `update clinic.queue_entries
+       set status='completed', completed_at=now(), updated_at=now()
+       where id=$1`,
+      [entry.id],
+    );
+    await client.query(
+      `insert into clinic.queue_events (queue_entry_id, from_status, to_status, actor_user_id, notes)
+       values ($1, $2, 'completed', $3, $4)`,
+      [entry.id, entry.status, actorUserId, notes],
+    );
+  }
+}

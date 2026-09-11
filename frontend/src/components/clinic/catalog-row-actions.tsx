@@ -71,9 +71,18 @@ export function CatalogRowActions({
 
           {item.item_type === "drug" && item.track_inventory ? (
             <DropdownMenuItem asChild>
-              <Link href="/pharmacy/inventory">
+              <Link href="/admin/inventory">
                 <Boxes className="mr-2 size-3.5" />
                 Manage inventory
+              </Link>
+            </DropdownMenuItem>
+          ) : null}
+
+          {item.item_type === "supply" ? (
+            <DropdownMenuItem asChild>
+              <Link href="/admin/inventory?tab=supplies">
+                <Boxes className="mr-2 size-3.5" />
+                Manage supplies
               </Link>
             </DropdownMenuItem>
           ) : null}

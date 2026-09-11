@@ -76,7 +76,7 @@ describe("AuthService", () => {
     expect(store.recordFailedLogin).toHaveBeenCalled();
   });
 
-  it("revokes all sessions when the password changes", async () => {
+  it("revokes old sessions and issues a fresh session when the password changes", async () => {
     const user = {
       id: "cc966a2b-e6c2-42a9-a28a-c55472f03b42",
       email: "admin@clinic.test",
@@ -98,7 +98,12 @@ describe("AuthService", () => {
       sessionIdleMinutes: 30,
     });
 
-    await service.changePassword(user.id, "Clinic-Secure-42", "Clinic-NewSecure-43!", metadata);
+    const result = await service.changePassword(user.id, "Clinic-Secure-42", "Clinic-NewSecure-43!", metadata);
     expect(store.changePasswordAndRevokeSessions).toHaveBeenCalledWith(user.id, expect.stringMatching(/^\$argon2id\$/));
+    expect(result.token.length).toBeGreaterThan(30);
+    expect(result.user.must_change_password).toBe(false);
+    expect(store.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: user.id, tokenHash: expect.stringMatching(/^[a-f0-9]{64}$/) }),
+    );
   });
 });

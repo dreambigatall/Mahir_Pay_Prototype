@@ -22,7 +22,7 @@ export type PharmacyPrescription = {
   patient_name: string;
   prescriber_id: string;
   prescriber_name: string;
-  status: "payment_approved" | "partially_dispensed" | "dispensed" | string;
+  status: "awaiting_payment" | "payment_approved" | "partially_dispensed" | "dispensed" | string;
   notes: string | null;
   prescribed_at: string;
   items: PrescriptionItem[];
@@ -30,6 +30,10 @@ export type PharmacyPrescription = {
 
 export function listPharmacyWorklist(signal?: AbortSignal) {
   return apiRequest<{ items: PharmacyPrescription[] }>("/pharmacy/worklist?limit=200", { signal });
+}
+
+export function getPharmacyPrescription(prescriptionId: string, signal?: AbortSignal) {
+  return apiRequest<{ item: PharmacyPrescription }>(`/pharmacy/prescriptions/${prescriptionId}`, { signal });
 }
 
 export function dispensePrescription(

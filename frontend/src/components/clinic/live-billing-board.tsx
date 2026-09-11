@@ -52,6 +52,8 @@ type BillingCard = {
   invoiceLabel: string;
   total: number;
   isPaid: boolean;
+  pendingRxCount: number;
+  pendingRxSummary: string | null;
 };
 
 export function LiveBillingBoard() {
@@ -108,6 +110,8 @@ export function LiveBillingBoard() {
         invoiceLabel: visit.visit_number,
         total: 0,
         isPaid: false,
+        pendingRxCount: Number(visit.pending_rx_count ?? 0),
+        pendingRxSummary: visit.pending_rx_summary ?? null,
       })),
       ...outstanding.map((invoice) => ({
         key: `invoice-${invoice.id}`,
@@ -117,6 +121,8 @@ export function LiveBillingBoard() {
         invoiceLabel: invoice.invoice_number,
         total: Number(invoice.balance_due),
         isPaid: false,
+        pendingRxCount: Number(invoice.pending_rx_count ?? 0),
+        pendingRxSummary: invoice.pending_rx_summary ?? null,
       })),
     ];
 
@@ -128,6 +134,8 @@ export function LiveBillingBoard() {
       invoiceLabel: invoice.invoice_number,
       total: Number(invoice.total),
       isPaid: true,
+      pendingRxCount: 0,
+      pendingRxSummary: null,
     }));
 
     return [...unpaid, ...paid];
@@ -397,6 +405,13 @@ function BillingKanbanCard({ card }: { card: BillingCard }) {
       <p className="mt-2.5 font-mono text-sm text-muted-foreground">
         {card.patientRef} · {card.invoiceLabel}
       </p>
+
+      {!card.isPaid && card.pendingRxCount > 0 ? (
+        <div className="mt-3 rounded-lg border border-warning-fill/20 bg-warning-fill/10 px-3 py-2 text-sm text-warning-text">
+          <p className="font-medium">Rx pending payment · {card.pendingRxCount}</p>
+          {card.pendingRxSummary ? <p className="mt-0.5 truncate text-xs opacity-90">{card.pendingRxSummary}</p> : null}
+        </div>
+      ) : null}
 
       <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-4">
         <span className="text-[14px] text-fg-muted">Total</span>

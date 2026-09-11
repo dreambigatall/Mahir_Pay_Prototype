@@ -66,7 +66,8 @@ export function AppHeader() {
     doctor: "clinical",
     admin: "info",
     lab: "warning",
-    receptionist: "neutral",
+        receptionist: "neutral",
+        pharmacist: "clinical",
   };
 
   return (

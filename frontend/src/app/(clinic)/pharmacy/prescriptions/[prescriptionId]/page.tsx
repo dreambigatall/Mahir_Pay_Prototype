@@ -1,5 +1,5 @@
 import { LiveDispensingWorkspace } from "@/components/clinic/live-dispensing-workspace";
-import { PageHeader } from "@/components/layout/page-header";
+import { PageHeader } from "@/components/clinic/page-header";
 
 export default async function DispensingPage({ params }: { params: Promise<{ prescriptionId: string }> }) {
   const { prescriptionId } = await params;

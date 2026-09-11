@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Clipboard, FlaskConical, LayoutDashboard, Loader2, LockKeyhole, Plus, RefreshCw, Search, ShieldCheck, Stethoscope, UserRoundCog, Users, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Clipboard, FlaskConical, LayoutDashboard, Loader2, LockKeyhole, Pill, Plus, RefreshCw, Search, ShieldCheck, Stethoscope, UserRoundCog, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { MetricCard } from "@/components/clinic/metric-card";
@@ -19,17 +19,19 @@ import { ApiError } from "@/lib/api/client";
 import { createStaff, listRoles, listStaff, setStaffStatus, type BackendRole, type BackendStaffMember } from "@/lib/api/staff";
 import { useSession } from "@/lib/session";
 
-const supportedRoles = new Set(["receptionist", "doctor", "lab", "admin"]);
+const supportedRoles = new Set(["receptionist", "doctor", "lab", "pharmacist", "admin"]);
 const roleIcons: Record<string, typeof Users> = {
   receptionist: Users,
   doctor: Stethoscope,
   lab: FlaskConical,
+  pharmacist: Pill,
   admin: LayoutDashboard,
 };
 const roleVariants: Record<string, "clinical" | "info" | "warning" | "neutral"> = {
   receptionist: "neutral",
   doctor: "clinical",
   lab: "warning",
+  pharmacist: "info",
   admin: "info",
 };
 
@@ -173,7 +175,7 @@ function CreateStaffDialog({ open, onOpenChange, roles, onCreated }: { open: boo
             <Field label="Work email *" htmlFor="staff-email"><Input id="staff-email" required type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} /></Field>
             <div className="grid gap-3 sm:grid-cols-2"><Field label="Job title" htmlFor="staff-title"><Input id="staff-title" value={title} onChange={(event) => setTitle(event.target.value)} /></Field><Field label="Assigned room" htmlFor="staff-room"><Input id="staff-room" value={room} onChange={(event) => setRoom(event.target.value)} /></Field></div>
             <div className="grid gap-1.5"><Label htmlFor="staff-role">System role *</Label><Select value={role} onValueChange={setRole}><SelectTrigger id="staff-role" className="w-full"><SelectValue /></SelectTrigger><SelectContent>{roles.map((item) => <SelectItem key={item.slug} value={item.slug}>{item.name}</SelectItem>)}</SelectContent></Select><p className="text-xs text-fg-muted">Role permissions are enforced by the backend.</p></div>
-            <div className="grid gap-1.5"><div className="flex items-center justify-between"><Label htmlFor="temporary-password">Temporary password *</Label><button type="button" onClick={() => { setTemporaryPassword(generateTemporaryPassword()); setShowPassword(true); }} className="text-xs font-medium text-primary hover:underline">Generate strong password</button></div><div className="flex gap-2"><Input id="temporary-password" required minLength={12} type={showPassword ? "text" : "password"} autoComplete="new-password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} aria-describedby="temporary-password-help" /><Button type="button" variant="outline" className="min-h-10 shrink-0" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</Button></div><p id="temporary-password-help" className="text-xs leading-5 text-fg-muted">At least 12 characters with uppercase, lowercase, a number, and a symbol.</p></div>
+            <div className="grid gap-1.5"><div className="flex items-center justify-between"><Label htmlFor="temporary-password">Temporary password *</Label><button type="button" onClick={() => { setTemporaryPassword(generateTemporaryPassword()); setShowPassword(true); }} className="text-xs font-medium text-primary hover:underline">Generate password</button></div><div className="flex gap-2"><Input id="temporary-password" required minLength={6} type={showPassword ? "text" : "password"} autoComplete="new-password" value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} aria-describedby="temporary-password-help" /><Button type="button" variant="outline" className="min-h-10 shrink-0" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</Button></div><p id="temporary-password-help" className="text-xs leading-5 text-fg-muted">At least 6 characters. Letters, numbers, or a mix are all fine.</p></div>
             <DialogFooter><Button type="button" variant="outline" onClick={close}>Cancel</Button><Button type="submit" className="min-h-11 gap-2" disabled={submitting}>{submitting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <UserRoundCog className="size-4" aria-hidden="true" />}{submitting ? "Creating account…" : "Create account"}</Button></DialogFooter>
           </form>
         )}
@@ -196,4 +198,8 @@ function StaffTableSkeleton() { return <div className="space-y-2 rounded-xl bord
 function initials(name: string) { return name.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").toUpperCase().slice(0, 2); }
 function StatusLabel({ status }: { status: BackendStaffMember["status"] }) { const active = status === "active"; return <span className={active ? "inline-flex items-center gap-1.5 text-xs font-medium text-success-text" : "inline-flex items-center gap-1.5 text-xs font-medium text-danger-text"}><span className={active ? "size-2 rounded-full bg-success-fill" : "size-2 rounded-full bg-danger-fill"} aria-hidden="true" />{status === "active" ? "Active" : status === "locked" ? "Locked" : "Disabled"}</span>; }
 function RoleChip({ role }: { role: string }) { const Icon = roleIcons[role] ?? Users; return <Chip variant={roleVariants[role] ?? "neutral"} icon={<Icon aria-hidden="true" />}>{role.replaceAll("_", " ")}</Chip>; }
-function generateTemporaryPassword() { const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"; const bytes = crypto.getRandomValues(new Uint8Array(12)); return `Mc!7${Array.from(bytes, (value) => alphabet[value % alphabet.length]).join("")}`; }
+function generateTemporaryPassword() {
+  const alphabet = "abcdefghijkmnopqrstuvwxyz23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (value) => alphabet[value % alphabet.length]).join("");
+}

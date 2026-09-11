@@ -47,7 +47,10 @@ export function navFor(role: Role) {
         { href: "/doctor/patients", label: "My patients", icon: Stethoscope },
       ];
     case "lab":
-      return [{ href: "/lab", label: "Lab board", icon: FlaskConical }];
+      return [
+        { href: "/lab", label: "Lab board", icon: FlaskConical },
+        { href: "/lab/supplies", label: "Supplies", icon: Boxes },
+      ];
     case "pharmacist":
       return [
         { href: "/pharmacy", label: "Dispensing", icon: Pill },
@@ -58,6 +61,7 @@ export function navFor(role: Role) {
         { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
         { href: "/admin/users", label: "User Management", icon: Users },
         { href: "/admin/catalog", label: "Catalog", icon: Receipt },
+        { href: "/admin/inventory", label: "Inventory", icon: Boxes },
         { href: "/admin/reports", label: "Reports", icon: BarChart3 },
       ];
   }

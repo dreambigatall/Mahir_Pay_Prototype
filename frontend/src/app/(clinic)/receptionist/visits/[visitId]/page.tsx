@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { AlertCircle, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AssignVisitDoctorButton, canAssignVisitDoctor } from "@/components/clinic/assign-visit-doctor-button";
 import { PageHeader } from "@/components/clinic/page-header";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -40,7 +41,9 @@ export default function ReceptionistVisitPage() {
     }
   }, [visitId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   async function sendToDoctor() {
     if (!visit) return;
@@ -62,16 +65,30 @@ export default function ReceptionistVisitPage() {
   }
 
   if (loading) {
-    return <div className="mx-auto max-w-2xl space-y-4"><Skeleton className="h-10 w-64" /><Skeleton className="h-48 w-full rounded-xl" /></div>;
+    return (
+      <div className="mx-auto max-w-2xl space-y-4">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-48 w-full rounded-xl" />
+      </div>
+    );
   }
 
   if (error || !visit || !patient) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
-        <div role="alert" className="flex items-center gap-2 rounded-xl border border-danger-fill/30 bg-danger-fill/10 p-4 text-sm text-danger-text">
-          <AlertCircle className="size-4" aria-hidden="true" />{error || "Visit was not found."}
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-xl border border-danger-fill/30 bg-danger-fill/10 p-4 text-sm text-danger-text"
+        >
+          <AlertCircle className="size-4" aria-hidden="true" />
+          {error || "Visit was not found."}
         </div>
-        <Button asChild variant="outline"><Link href="/receptionist"><ArrowLeft className="size-4" />Back to queue</Link></Button>
+        <Button asChild variant="outline">
+          <Link href="/receptionist">
+            <ArrowLeft className="size-4" />
+            Back to queue
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -97,7 +114,12 @@ export default function ReceptionistVisitPage() {
           </div>
           <div>
             <dt className="text-[12px] text-fg-muted">Doctor</dt>
-            <dd>{visit.doctor_name ? `Dr. ${visit.doctor_name}` : "Unassigned"}</dd>
+            <dd>
+              {visit.doctor_name ? `Dr. ${visit.doctor_name}` : "Unassigned"}
+              {!canAssignVisitDoctor(visit.status) && visit.doctor_name ? (
+                <span className="mt-1 block text-[12px] text-fg-muted">Locked after consultation started</span>
+              ) : null}
+            </dd>
           </div>
           <div>
             <dt className="text-[12px] text-fg-muted">Phone</dt>
@@ -109,15 +131,32 @@ export default function ReceptionistVisitPage() {
           </div>
         </dl>
         <div className="mt-5 flex flex-wrap gap-2">
-          <Button asChild variant="outline"><Link href="/receptionist"><ArrowLeft className="size-4" />Back to queue</Link></Button>
+          <Button asChild variant="outline">
+            <Link href="/receptionist">
+              <ArrowLeft className="size-4" />
+              Back to queue
+            </Link>
+          </Button>
+          <AssignVisitDoctorButton
+            visitId={visit.id}
+            currentDoctorId={visit.doctor_id}
+            currentDoctorName={visit.doctor_name}
+            visitStatus={visit.status}
+            patientName={name}
+            size="default"
+            className="min-h-10 gap-1.5"
+            onAssigned={setVisit}
+          />
           {awaitingTriage ? (
             <Button type="button" className="gap-1.5" disabled={sending} onClick={() => void sendToDoctor()}>
               {sending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ArrowRight className="size-4" aria-hidden="true" />}
               {sending ? "Sending…" : "Send to doctor"}
             </Button>
           ) : null}
-          {(visit.status === "ready_for_billing" || visit.status === "billed") ? (
-            <Button asChild variant="outline"><Link href={`/receptionist/billing/${visit.id}`}>Open invoice</Link></Button>
+          {visit.status === "ready_for_billing" || visit.status === "billed" ? (
+            <Button asChild variant="outline">
+              <Link href={`/receptionist/billing/${visit.id}`}>Open invoice</Link>
+            </Button>
           ) : null}
         </div>
       </div>

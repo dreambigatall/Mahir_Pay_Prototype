@@ -37,7 +37,7 @@ export function EditCatalogItemDialog({
   const [reorderLevel, setReorderLevel] = useState(item.reorder_level ?? "");
   const [submitting, setSubmitting] = useState(false);
 
-  const trackedDrug = item.item_type === "drug" && item.track_inventory;
+  const trackedStock = (item.item_type === "drug" || item.item_type === "supply") && item.track_inventory;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -48,7 +48,7 @@ export function EditCatalogItemDialog({
     }
 
     let reorder: number | undefined;
-    if (trackedDrug) {
+    if (trackedStock) {
       reorder = reorderLevel.trim() ? Number(reorderLevel) : 0;
       if (Number.isNaN(reorder) || reorder < 0) {
         toast.error("Enter a valid reorder level.");
@@ -61,7 +61,7 @@ export function EditCatalogItemDialog({
       await updateCatalogItem(item.id, {
         name: name.trim(),
         price: amount,
-        ...(trackedDrug
+        ...(trackedStock
           ? {
               unit: unit.trim() || null,
               reorderLevel: reorder,
@@ -118,7 +118,7 @@ export function EditCatalogItemDialog({
 
           <div className="grid gap-1.5">
             <Label htmlFor="edit-item-price" className="text-[13px] font-medium text-foreground">
-              Price (GHS) *
+              {item.item_type === "supply" ? "Unit cost (GHS)" : "Price (GHS) *"}
             </Label>
             <Input
               id="edit-item-price"
@@ -132,9 +132,11 @@ export function EditCatalogItemDialog({
             />
           </div>
 
-          {trackedDrug ? (
+          {trackedStock ? (
             <div className="space-y-3 rounded-xl border border-border/70 bg-surface-1 p-4">
-              <p className="text-[12px] font-medium text-fg-secondary">Pharmacy inventory</p>
+              <p className="text-[12px] font-medium text-fg-secondary">
+                {item.item_type === "supply" ? "Clinic supply stock" : "Medication inventory"}
+              </p>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="grid gap-1.5">
                   <Label htmlFor="edit-item-unit" className="text-[12px] font-medium text-fg-secondary">
@@ -171,7 +173,9 @@ export function EditCatalogItemDialog({
                 </div>
               </div>
               <p className="text-[11px] text-fg-muted">
-                Receive batches and adjust stock from the pharmacy inventory workspace.
+                {item.item_type === "supply"
+                  ? "Receive and record usage from Admin → Inventory → Clinic supplies. This item is not billed to patients."
+                  : "Receive batches and adjust stock from Admin → Inventory. Dispensing after payment reduces on-hand quantity automatically."}
               </p>
             </div>
           ) : null}

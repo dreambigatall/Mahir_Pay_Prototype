@@ -17,23 +17,41 @@
 !.yarn/releases
 !.yarn/versions
 
-# Environment and local secrets
-.env*
+# Environment and local secrets (keep *.example committed)
+.env
+.env.*
 !.env.example
+!**/.env.example
 
 # Logs and debug output
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
 # Framework and deployment state
 .vercel/
+.render/
+
+# Local IDE / agent tooling (do not ship to Render)
+.cursor/
+.codex/
+*.pyc
+**/__pycache__/
+
+# Temporary local scripts / scratch files
+**/tmp-*.js
+**/tmp-*.ts
+**/tmp-*.cjs
+**/tmp-*.mjs
 
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# Operating-system and certificate files
+# Operating-system files
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.pem
