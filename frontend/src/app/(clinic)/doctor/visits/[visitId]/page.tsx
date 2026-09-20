@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils";
 
 type ClinicalNotes = {
   complaint: string;
+  history: string;
   findings: string;
   diagnosis: string;
   plan: string;
@@ -71,49 +72,54 @@ export default function DoctorVisitPage() {
   const [error, setError] = useState("");
   const [startError, setStartError] = useState("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError("");
     setStartError("");
     try {
-      const visitResponse = await getVisit(visitId);
+      const visitResponse = await getVisit(visitId, signal);
       const visitItem = visitResponse.item;
-      const patientResponse = await getPatient(visitItem.patient_id);
+      const patientResponse = await getPatient(visitItem.patient_id, signal);
+      if (signal?.aborted) return;
+
       setVisit(visitItem);
       setPatient(patientResponse.item);
 
       let encounterItem: BackendEncounter | null = null;
+      let started = false;
       try {
-        encounterItem = (await getEncounterByVisit(visitId)).item;
+        const ensured = await ensureEncounter(visitId, visitItem.status, signal);
+        encounterItem = ensured.encounter;
+        started = ensured.started;
       } catch (caught) {
-        if (caught instanceof ApiError && caught.status === 404) {
-          if (["awaiting_doctor", "in_consultation"].includes(visitItem.status)) {
-            try {
-              encounterItem = (await startEncounter(visitId)).item;
-              setVisit((current) => (current ? { ...current, status: "in_consultation" } : current));
-            } catch (startCaught) {
-              setStartError(startCaught instanceof ApiError ? startCaught.message : "Consultation could not be started.");
-            }
-          }
-        }
+        if (signal?.aborted) return;
+        setStartError(caught instanceof ApiError ? caught.message : "Consultation could not be started.");
       }
 
+      if (signal?.aborted) return;
       setEncounter(encounterItem);
+      if (started) {
+        setVisit((current) => (current ? { ...current, status: "in_consultation" } : current));
+      }
 
       try {
-        setTriage((await getTriage(visitId)).item);
+        setTriage((await getTriage(visitId, signal)).item);
       } catch {
-        setTriage(null);
+        if (!signal?.aborted) setTriage(null);
       }
     } catch (caught) {
+      if (signal?.aborted || (caught instanceof DOMException && caught.name === "AbortError")) return;
+      if (caught instanceof ApiError && caught.code === "API_UNREACHABLE" && signal?.aborted) return;
       setError(caught instanceof ApiError ? caught.message : "The consultation could not be loaded.");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [visitId]);
 
   useEffect(() => {
-    void load();
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
   }, [load]);
 
   if (loading) return <VisitSkeleton />;
@@ -199,6 +205,7 @@ export default function DoctorVisitPage() {
                   <ClinicalNotesSection
                     encounter={encounter}
                     visitReason={visit.reason}
+                    triage={triage}
                     readOnly={signed}
                     onSaved={setEncounter}
                   />
@@ -239,30 +246,22 @@ function TabPill({ value, label, icon: Icon }: { value: string; label: string; i
 function ClinicalNotesSection({
   encounter,
   visitReason,
+  triage,
   readOnly,
   onSaved,
 }: {
   encounter: BackendEncounter;
   visitReason: string;
+  triage: TriageObservation | null;
   readOnly: boolean;
   onSaved: (encounter: BackendEncounter) => void;
 }) {
-  const [notes, setNotes] = useState<ClinicalNotes>({
-    complaint: encounter.subjective ?? visitReason,
-    findings: encounter.objective ?? "",
-    diagnosis: encounter.diagnosis ?? encounter.assessment ?? "",
-    plan: encounter.plan ?? "",
-  });
+  const [notes, setNotes] = useState<ClinicalNotes>(() => notesFromEncounter(encounter, visitReason));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setNotes({
-      complaint: encounter.subjective ?? visitReason,
-      findings: encounter.objective ?? "",
-      diagnosis: encounter.diagnosis ?? encounter.assessment ?? "",
-      plan: encounter.plan ?? "",
-    });
+    setNotes(notesFromEncounter(encounter, visitReason));
   }, [encounter, visitReason]);
 
   async function save() {
@@ -270,7 +269,7 @@ function ClinicalNotesSection({
     setError("");
     try {
       const response = await saveEncounter(encounter.id, {
-        subjective: notes.complaint.trim(),
+        subjective: packSubjective(notes.complaint, notes.history),
         objective: notes.findings.trim(),
         diagnosis: notes.diagnosis.trim(),
         assessment: notes.diagnosis.trim(),
@@ -285,25 +284,83 @@ function ClinicalNotesSection({
     }
   }
 
+  const vitalChips = triageVitalChips(triage);
+
   return (
     <section>
       <div className="mb-4 flex items-center gap-2 border-b border-border/50 pb-4">
         <FileText className="size-5 text-clinical-fill" aria-hidden="true" />
         <h2 className="text-base font-semibold">Clinical notes & examination</h2>
       </div>
+
+      <div className="mb-4 rounded-xl border border-border/70 bg-surface-1 px-3 py-2.5">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-fg-muted">Vitals from triage</p>
+        {vitalChips.length ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {vitalChips.map((chip) => (
+              <span
+                key={chip.label}
+                className="rounded-full border border-border bg-background px-2.5 py-1 font-mono text-xs text-fg-secondary"
+              >
+                <span className="text-fg-muted">{chip.label}</span> {chip.value}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-1.5 text-xs text-fg-muted">No triage vitals recorded yet. Use the vitals panel to add them.</p>
+        )}
+      </div>
+
       <div className="space-y-4">
-        <Field label="Chief complaint & symptoms" id="complaint">
-          <Input id="complaint" value={notes.complaint} readOnly={readOnly} onChange={(e) => setNotes((n) => ({ ...n, complaint: e.target.value }))} placeholder="Primary reason, onset, severity…" />
+        <Field label="Chief complaint" id="complaint">
+          <Input
+            id="complaint"
+            value={notes.complaint}
+            readOnly={readOnly}
+            onChange={(e) => setNotes((n) => ({ ...n, complaint: e.target.value }))}
+            placeholder="Why the patient came today…"
+          />
+        </Field>
+        <Field label="History of present illness" id="history">
+          <Textarea
+            id="history"
+            value={notes.history}
+            readOnly={readOnly}
+            onChange={(e) => setNotes((n) => ({ ...n, history: e.target.value }))}
+            placeholder="Onset, duration, severity, what makes it better or worse…"
+            rows={3}
+          />
         </Field>
         <Field label="Physical examination findings" id="findings">
-          <Textarea id="findings" value={notes.findings} readOnly={readOnly} onChange={(e) => setNotes((n) => ({ ...n, findings: e.target.value }))} placeholder="General appearance, chest, abdomen, ENT…" rows={3} />
+          <Textarea
+            id="findings"
+            value={notes.findings}
+            readOnly={readOnly}
+            onChange={(e) => setNotes((n) => ({ ...n, findings: e.target.value }))}
+            placeholder="General appearance, chest, abdomen, ENT…"
+            rows={3}
+          />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Provisional diagnosis" id="diagnosis">
-            <Input id="diagnosis" value={notes.diagnosis} readOnly={readOnly} onChange={(e) => setNotes((n) => ({ ...n, diagnosis: e.target.value }))} placeholder="e.g. Acute URTI" />
+            <Textarea
+              id="diagnosis"
+              value={notes.diagnosis}
+              readOnly={readOnly}
+              onChange={(e) => setNotes((n) => ({ ...n, diagnosis: e.target.value }))}
+              placeholder="e.g. Acute URTI"
+              rows={3}
+            />
           </Field>
           <Field label="Care plan & follow-up" id="plan">
-            <Input id="plan" value={notes.plan} readOnly={readOnly} onChange={(e) => setNotes((n) => ({ ...n, plan: e.target.value }))} placeholder="Treatment and follow-up" />
+            <Textarea
+              id="plan"
+              value={notes.plan}
+              readOnly={readOnly}
+              onChange={(e) => setNotes((n) => ({ ...n, plan: e.target.value }))}
+              placeholder="Treatment and follow-up"
+              rows={3}
+            />
           </Field>
         </div>
       </div>
@@ -312,12 +369,59 @@ function ClinicalNotesSection({
         <div className="mt-5 flex justify-end">
           <Button type="button" disabled={saving} onClick={() => void save()}>
             {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
-            {saving ? "Saving…" : "Save consultation"}
+            {saving ? "Saving…" : "Save notes"}
           </Button>
         </div>
       ) : null}
     </section>
   );
+}
+
+const SUBJECTIVE_HPI_SEPARATOR = "\n---\n";
+
+function packSubjective(complaint: string, history: string) {
+  const cc = complaint.trim();
+  const hpi = history.trim();
+  if (!hpi) return cc;
+  if (!cc) return `${SUBJECTIVE_HPI_SEPARATOR.trimStart()}${hpi}`;
+  return `${cc}${SUBJECTIVE_HPI_SEPARATOR}${hpi}`;
+}
+
+function unpackSubjective(value: string | null | undefined, visitReason: string) {
+  const raw = value?.trim() ?? "";
+  if (!raw) return { complaint: visitReason, history: "" };
+  const parts = raw.split(SUBJECTIVE_HPI_SEPARATOR);
+  if (parts.length >= 2) {
+    return {
+      complaint: parts[0]!.trim() || visitReason,
+      history: parts.slice(1).join(SUBJECTIVE_HPI_SEPARATOR).trim(),
+    };
+  }
+  return { complaint: raw, history: "" };
+}
+
+function notesFromEncounter(encounter: BackendEncounter, visitReason: string): ClinicalNotes {
+  const subjective = unpackSubjective(encounter.subjective, visitReason);
+  return {
+    complaint: subjective.complaint,
+    history: subjective.history,
+    findings: encounter.objective ?? "",
+    diagnosis: encounter.diagnosis ?? encounter.assessment ?? "",
+    plan: encounter.plan ?? "",
+  };
+}
+
+function triageVitalChips(triage: TriageObservation | null) {
+  if (!triage) return [] as Array<{ label: string; value: string }>;
+  const chips: Array<{ label: string; value: string }> = [];
+  if (triage.systolic_bp != null && triage.diastolic_bp != null) {
+    chips.push({ label: "BP", value: `${triage.systolic_bp}/${triage.diastolic_bp}` });
+  }
+  if (triage.pulse_bpm != null) chips.push({ label: "HR", value: String(triage.pulse_bpm) });
+  if (triage.temperature_c) chips.push({ label: "Temp", value: `${triage.temperature_c}°C` });
+  if (triage.oxygen_saturation) chips.push({ label: "SpO₂", value: `${triage.oxygen_saturation}%` });
+  if (triage.weight_kg) chips.push({ label: "Wt", value: `${triage.weight_kg} kg` });
+  return chips;
 }
 
 function CompleteVisitButton({
@@ -394,10 +498,18 @@ function StartConsultationPanel({
     setSubmitting(true);
     setError("");
     try {
-      const response = await startEncounter(visit.id);
-      onStarted(response.item);
-      onVisitUpdate({ ...visit, status: "in_consultation" });
-      toast.success("Consultation started");
+      const { encounter, started } = await ensureEncounter(visit.id, visit.status);
+      if (!encounter) {
+        setError("Visit is not ready for consultation.");
+        return;
+      }
+      onStarted(encounter);
+      if (started) {
+        onVisitUpdate({ ...visit, status: "in_consultation" });
+        toast.success("Consultation started");
+      } else {
+        onVisitUpdate({ ...visit, status: visit.status === "awaiting_doctor" ? "in_consultation" : visit.status });
+      }
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Consultation could not be started.");
     } finally {
@@ -484,6 +596,34 @@ function VisitSkeleton() {
       <Skeleton className="h-96 w-full rounded-xl" />
     </div>
   );
+}
+
+function ensureEncounter(
+  visitId: string,
+  visitStatus: string,
+  signal?: AbortSignal,
+): Promise<{ encounter: BackendEncounter | null; started: boolean }> {
+  return getEncounterByVisit(visitId, signal)
+    .then((response) => ({ encounter: response.item, started: false }))
+    .catch(async (caught) => {
+      if (!(caught instanceof ApiError) || caught.status !== 404) throw caught;
+      if (!["awaiting_doctor", "in_consultation"].includes(visitStatus)) {
+        return { encounter: null, started: false };
+      }
+      try {
+        const started = await startEncounter(visitId, signal);
+        return { encounter: started.item, started: true };
+      } catch (startCaught) {
+        if (
+          startCaught instanceof ApiError
+          && (startCaught.status === 409 || startCaught.code === "ENCOUNTER_EXISTS")
+        ) {
+          const existing = await getEncounterByVisit(visitId, signal);
+          return { encounter: existing.item, started: false };
+        }
+        throw startCaught;
+      }
+    });
 }
 
 function fullName(patient: BackendPatient): string {

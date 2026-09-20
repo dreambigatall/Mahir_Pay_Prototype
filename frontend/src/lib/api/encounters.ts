@@ -41,22 +41,23 @@ export type EncounterDocument = {
   diagnosis?: string;
 };
 
-export function getVisit(visitId: string) {
-  return apiRequest<{ item: BackendVisit }>(`/visits/${visitId}`);
+export function getVisit(visitId: string, signal?: AbortSignal) {
+  return apiRequest<{ item: BackendVisit }>(`/visits/${visitId}`, { signal });
 }
 
-export function getPatient(patientId: string) {
-  return apiRequest<{ item: BackendPatient }>(`/patients/${patientId}`);
+export function getPatient(patientId: string, signal?: AbortSignal) {
+  return apiRequest<{ item: BackendPatient }>(`/patients/${patientId}`, { signal });
 }
 
-export function getEncounterByVisit(visitId: string) {
-  return apiRequest<{ item: BackendEncounter }>(`/encounters/by-visit/${visitId}`);
+export function getEncounterByVisit(visitId: string, signal?: AbortSignal) {
+  return apiRequest<{ item: BackendEncounter }>(`/encounters/by-visit/${visitId}`, { signal });
 }
 
-export function startEncounter(visitId: string) {
+export function startEncounter(visitId: string, signal?: AbortSignal) {
   return apiRequest<{ item: BackendEncounter }>("/encounters", {
     method: "POST",
     body: JSON.stringify({ visitId }),
+    signal,
   });
 }
 

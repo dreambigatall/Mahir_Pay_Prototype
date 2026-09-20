@@ -147,7 +147,7 @@ export function LiveQueueBoard() {
               <section key={station.id} className="w-[310px] rounded-2xl border border-border/70 bg-surface-1 p-4" aria-labelledby={`station-${station.id}`}>
                 <header className="mb-4 flex items-start justify-between border-b border-border/60 pb-3">
                   <div><h2 id={`station-${station.id}`} className="font-heading text-base font-semibold">{station.label}</h2><p className="mt-0.5 text-xs text-fg-muted">{station.description}</p></div>
-                  <span className="rounded-full bg-secondary px-2.5 py-1 font-mono text-xs font-semibold">{cards.length}</span>
+                  <span className="rounded-full bg-secondary px-2.5 py-1 font-mono text-xs font-semibold text-secondary-foreground">{cards.length}</span>
                 </header>
                 <div className="space-y-3">
                   {cards.length === 0 ? (
@@ -171,7 +171,7 @@ export function LiveQueueBoard() {
                 <h2 id="station-paid-today" className="font-heading text-base font-semibold">Paid today</h2>
                 <p className="mt-0.5 text-xs text-fg-muted">Completed billing</p>
               </div>
-              <span className="rounded-full bg-secondary px-2.5 py-1 font-mono text-xs font-semibold">{paidTodayFiltered.length}</span>
+              <span className="rounded-full bg-secondary px-2.5 py-1 font-mono text-xs font-semibold text-secondary-foreground">{paidTodayFiltered.length}</span>
             </header>
             <div className="space-y-3">
               {paidTodayFiltered.length === 0 ? (
@@ -183,7 +183,7 @@ export function LiveQueueBoard() {
           </section>
         </div>
       </div>
-      <p className="text-xs text-fg-muted">After full payment, visits leave Billing and move into Paid today.</p>
+      <p className="text-xs text-fg-muted">After full payment or credit release, visits leave Billing. Unpaid balances stay on the outstanding list.</p>
     </section>
   );
 }
@@ -275,7 +275,7 @@ function formatPaidAt(value: string) {
 }
 
 function PriorityBadge({ priority }: { priority: BackendQueueEntry["priority"] }) {
-  return <span className={cn("shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide", priority === "emergency" ? "bg-danger-fill/15 text-danger-text" : priority === "urgent" ? "bg-warning-fill/15 text-warning-text" : "bg-secondary text-fg-secondary")}>{priority}</span>;
+  return <span className={cn("shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide", priority === "emergency" ? "bg-danger-fill/15 text-danger-text" : priority === "urgent" ? "bg-warning-fill/15 text-warning-text" : "bg-secondary text-secondary-foreground")}>{priority}</span>;
 }
 
 function Metric({ label, value, detail, icon: Icon, tone = "default" }: { label: string; value: number; detail: string; icon: typeof Users; tone?: "default" | "warning" | "success" | "danger" }) {

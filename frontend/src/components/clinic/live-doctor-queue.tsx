@@ -106,7 +106,7 @@ function DoctorQueueCard({ entry }: { entry: BackendQueueEntry }) {
           <p className="mt-1 font-mono text-xs text-fg-muted">{entry.medical_record_number} · {entry.visit_number}</p>
           <p className="mt-1 text-xs text-fg-secondary">{entry.doctor_name ? `Assigned · ${entry.doctor_name}` : "Unassigned — available to claim"}</p>
         </div>
-        <span className={cn("rounded-full px-2 py-1 text-[10px] font-semibold uppercase", entry.priority === "emergency" ? "bg-danger-fill/15 text-danger-text" : entry.priority === "urgent" ? "bg-warning-fill/15 text-warning-text" : "bg-secondary text-fg-secondary")}>{entry.priority}</span>
+        <span className={cn("rounded-full px-2 py-1 text-[10px] font-semibold uppercase", entry.priority === "emergency" ? "bg-danger-fill/15 text-danger-text" : entry.priority === "urgent" ? "bg-warning-fill/15 text-warning-text" : "bg-secondary text-secondary-foreground")}>{entry.priority}</span>
       </div>
       <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3">
         <span className="inline-flex items-center gap-1.5 text-xs text-fg-secondary">

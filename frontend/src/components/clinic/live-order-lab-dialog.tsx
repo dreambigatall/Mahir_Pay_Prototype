@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, FlaskConical, Layers, Loader2, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -115,6 +115,7 @@ export function LiveOrderLabDialog({
   panels,
   pendingCatalogItemIds,
   disabled,
+  trigger,
   onOrdered,
 }: {
   encounterId: string;
@@ -122,6 +123,7 @@ export function LiveOrderLabDialog({
   panels: LabPanel[];
   pendingCatalogItemIds: Set<string>;
   disabled?: boolean;
+  trigger?: ReactNode;
   onOrdered: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -257,10 +259,12 @@ export function LiveOrderLabDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" disabled={disabled}>
-          <FlaskConical className="size-3.5" aria-hidden="true" />
-          Order lab / imaging
-        </Button>
+        {trigger ?? (
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[12px]" disabled={disabled}>
+            <FlaskConical className="size-3.5" aria-hidden="true" />
+            Order lab / imaging
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="flex h-[min(820px,94vh)] w-full max-h-[94vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[720px]">
         <DialogHeader className="shrink-0 px-6 pt-6">

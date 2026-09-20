@@ -102,8 +102,8 @@ export type Prescription = {
   items: PrescriptionItem[];
 };
 
-export function getTriage(visitId: string) {
-  return apiRequest<{ item: TriageObservation }>(`/clinical/visits/${visitId}/triage`);
+export function getTriage(visitId: string, signal?: AbortSignal) {
+  return apiRequest<{ item: TriageObservation }>(`/clinical/visits/${visitId}/triage`, { signal });
 }
 
 export function getVisitDiagnostics(visitId: string) {

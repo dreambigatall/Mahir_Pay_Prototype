@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FlaskConical, Loader2, RefreshCw } from "lucide-react";
 
 import { LiveDoctorLabResults } from "@/components/clinic/live-doctor-lab-results";
@@ -80,6 +80,7 @@ export function LiveDoctorLabsSection({
     (item) => item.result?.result_value && ["result_ready", "verified", "reviewed"].includes(item.status),
   ).length;
   const allReady = activeItems.length > 0 && readyCount === activeItems.length;
+  const isEmpty = !loading && activeItems.length === 0;
 
   return (
     <section>
@@ -96,8 +97,8 @@ export function LiveDoctorLabsSection({
           ) : (
             <span className="text-[13px] font-medium text-fg-muted">0 ordered</span>
           )}
-          {!readOnly ? (
-            <LiveOrderLabDialog
+          {!readOnly && !isEmpty ? (
+            <OrderLabButton
               encounterId={encounterId}
               catalog={catalog}
               panels={panels}
@@ -123,9 +124,82 @@ export function LiveDoctorLabsSection({
           <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
           Loading laboratory data…
         </div>
+      ) : isEmpty ? (
+        <EmptyLabsCard
+          readOnly={readOnly}
+          orderButton={
+            !readOnly ? (
+              <OrderLabButton
+                encounterId={encounterId}
+                catalog={catalog}
+                panels={panels}
+                pendingCatalogItemIds={pendingCatalogItemIds}
+                onOrdered={load}
+                trigger={
+                  <Button type="button" className="min-h-11 gap-2 px-6">
+                    <FlaskConical className="size-4" aria-hidden="true" />
+                    Order lab / imaging
+                  </Button>
+                }
+              />
+            ) : null
+          }
+        />
       ) : (
         <LiveDoctorLabResults orders={orders} readOnly={readOnly} onChanged={load} />
       )}
     </section>
+  );
+}
+
+function OrderLabButton({
+  encounterId,
+  catalog,
+  panels,
+  pendingCatalogItemIds,
+  onOrdered,
+  trigger,
+}: {
+  encounterId: string;
+  catalog: CatalogItem[];
+  panels: LabPanel[];
+  pendingCatalogItemIds: Set<string>;
+  onOrdered: () => Promise<void>;
+  trigger?: ReactNode;
+}) {
+  return (
+    <LiveOrderLabDialog
+      encounterId={encounterId}
+      catalog={catalog}
+      panels={panels}
+      pendingCatalogItemIds={pendingCatalogItemIds}
+      onOrdered={onOrdered}
+      trigger={trigger}
+    />
+  );
+}
+
+function EmptyLabsCard({
+  readOnly,
+  orderButton,
+}: {
+  readOnly: boolean;
+  orderButton: ReactNode;
+}) {
+  return (
+    <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-border bg-surface-1/60 px-6 py-10">
+      <div className="flex max-w-md flex-col items-center text-center">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-clinical-fill/10 text-clinical-fill">
+          <FlaskConical className="size-7" aria-hidden="true" />
+        </div>
+        <h3 className="mt-4 font-heading text-lg font-semibold text-foreground">No lab or imaging ordered yet</h3>
+        <p className="mt-2 text-sm text-fg-secondary">
+          {readOnly
+            ? "This visit has no laboratory or imaging investigations on record."
+            : "Order blood tests, panels, or imaging from the clinic catalog. Results will appear here when the lab completes them."}
+        </p>
+        {orderButton ? <div className="mt-6">{orderButton}</div> : null}
+      </div>
+    </div>
   );
 }
