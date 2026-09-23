@@ -31,8 +31,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FormField, FormGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -264,6 +264,24 @@ function ClinicalNotesSection({
     setNotes(notesFromEncounter(encounter, visitReason));
   }, [encounter, visitReason]);
 
+  const baseline = notesFromEncounter(encounter, visitReason);
+  const isDirty =
+    !readOnly &&
+    (notes.complaint !== baseline.complaint ||
+      notes.history !== baseline.history ||
+      notes.findings !== baseline.findings ||
+      notes.diagnosis !== baseline.diagnosis ||
+      notes.plan !== baseline.plan);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warnOnUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warnOnUnload);
+    return () => window.removeEventListener("beforeunload", warnOnUnload);
+  }, [isDirty]);
+
   async function save() {
     setSaving(true);
     setError("");
@@ -288,86 +306,89 @@ function ClinicalNotesSection({
 
   return (
     <section>
-      <div className="mb-4 flex items-center gap-2 border-b border-border/50 pb-4">
-        <FileText className="size-5 text-clinical-fill" aria-hidden="true" />
-        <h2 className="text-base font-semibold">Clinical notes & examination</h2>
+      <div className="mb-5 flex items-center justify-between gap-2 border-b border-border/50 pb-4">
+        <div className="flex items-center gap-2">
+          <FileText className="size-5 text-clinical-fill" aria-hidden="true" />
+          <h2 className="text-base font-semibold">Clinical notes & examination</h2>
+        </div>
+        {isDirty ? <Chip variant="warning" size="sm">Unsaved changes</Chip> : null}
       </div>
 
-      <div className="mb-4 rounded-xl border border-border/70 bg-surface-1 px-3 py-2.5">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-fg-muted">Vitals from triage</p>
-        {vitalChips.length ? (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {vitalChips.map((chip) => (
-              <span
-                key={chip.label}
-                className="rounded-full border border-border bg-background px-2.5 py-1 font-mono text-xs text-fg-secondary"
-              >
-                <span className="text-fg-muted">{chip.label}</span> {chip.value}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-1.5 text-xs text-fg-muted">No triage vitals recorded yet. Use the vitals panel to add them.</p>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        <Field label="Chief complaint" id="complaint">
-          <Input
-            id="complaint"
-            value={notes.complaint}
-            readOnly={readOnly}
-            onChange={(e) => setNotes((n) => ({ ...n, complaint: e.target.value }))}
-            placeholder="Why the patient came today…"
-          />
-        </Field>
-        <Field label="History of present illness" id="history">
-          <Textarea
-            id="history"
-            value={notes.history}
-            readOnly={readOnly}
-            onChange={(e) => setNotes((n) => ({ ...n, history: e.target.value }))}
-            placeholder="Onset, duration, severity, what makes it better or worse…"
-            rows={3}
-          />
-        </Field>
-        <Field label="Physical examination findings" id="findings">
-          <Textarea
-            id="findings"
-            value={notes.findings}
-            readOnly={readOnly}
-            onChange={(e) => setNotes((n) => ({ ...n, findings: e.target.value }))}
-            placeholder="General appearance, chest, abdomen, ENT…"
-            rows={3}
-          />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Provisional diagnosis" id="diagnosis">
+      <div className="space-y-6">
+        <FormGroup eyebrow="Subjective" hint="What the patient reports">
+          <FormField id="complaint" label="Chief complaint" required={!readOnly}>
+            <Input
+              value={notes.complaint}
+              readOnly={readOnly}
+              onChange={(e) => setNotes((n) => ({ ...n, complaint: e.target.value }))}
+              placeholder="Why the patient came today…"
+            />
+          </FormField>
+          <FormField id="history" label="History of present illness" hint="Onset, duration, severity, what makes it better or worse">
             <Textarea
-              id="diagnosis"
+              value={notes.history}
+              readOnly={readOnly}
+              onChange={(e) => setNotes((n) => ({ ...n, history: e.target.value }))}
+              placeholder="Onset, duration, severity, what makes it better or worse…"
+              rows={3}
+            />
+          </FormField>
+        </FormGroup>
+
+        <FormGroup eyebrow="Objective" hint="Exam findings and vitals recorded at triage">
+          {vitalChips.length ? (
+            <div className="flex flex-wrap gap-2 rounded-lg border border-border/70 bg-surface-1 px-3 py-2.5">
+              {vitalChips.map((chip) => (
+                <span
+                  key={chip.label}
+                  className="rounded-full border border-border bg-background px-2.5 py-1 font-mono text-xs text-fg-secondary"
+                >
+                  <span className="text-fg-muted">{chip.label}</span> {chip.value}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-lg border border-dashed border-border px-3 py-2.5 text-xs text-fg-muted">
+              No triage vitals recorded yet. Use the vitals panel to add them.
+            </p>
+          )}
+          <FormField id="findings" label="Physical examination findings">
+            <Textarea
+              value={notes.findings}
+              readOnly={readOnly}
+              onChange={(e) => setNotes((n) => ({ ...n, findings: e.target.value }))}
+              placeholder="General appearance, chest, abdomen, ENT…"
+              rows={3}
+            />
+          </FormField>
+        </FormGroup>
+
+        <FormGroup eyebrow="Assessment & plan" hint="What this visit concludes">
+          <FormField id="diagnosis" label="Provisional diagnosis" required={!readOnly}>
+            <Textarea
               value={notes.diagnosis}
               readOnly={readOnly}
               onChange={(e) => setNotes((n) => ({ ...n, diagnosis: e.target.value }))}
               placeholder="e.g. Acute URTI"
               rows={3}
             />
-          </Field>
-          <Field label="Care plan & follow-up" id="plan">
+          </FormField>
+          <FormField id="plan" label="Care plan & follow-up" required={!readOnly}>
             <Textarea
-              id="plan"
               value={notes.plan}
               readOnly={readOnly}
               onChange={(e) => setNotes((n) => ({ ...n, plan: e.target.value }))}
               placeholder="Treatment and follow-up"
               rows={3}
             />
-          </Field>
-        </div>
+          </FormField>
+        </FormGroup>
       </div>
+
       {error ? <p role="alert" className="mt-3 text-sm text-danger-text">{error}</p> : null}
       {!readOnly ? (
-        <div className="mt-5 flex justify-end">
-          <Button type="button" disabled={saving} onClick={() => void save()}>
+        <div className="mt-5 flex items-center justify-end gap-3">
+          <Button type="button" disabled={saving || !isDirty} onClick={() => void save()}>
             {saving ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
             {saving ? "Saving…" : "Save notes"}
           </Button>
@@ -568,15 +589,6 @@ function PatientSidebar({
         </section>
       ) : null}
     </aside>
-  );
-}
-
-function Field({ label, id, children }: { label: string; id: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id} className="text-[13px] font-medium">{label}</Label>
-      {children}
-    </div>
   );
 }
 

@@ -270,9 +270,43 @@ export function LiveOrderLabDialog({
         <DialogHeader className="shrink-0 px-6 pt-6">
           <DialogTitle>Order laboratory & imaging diagnostics</DialogTitle>
           <DialogDescription>
-            Expand a panel to pick individual tests, or select standalone tests from the catalog.
+            Click a panel to expand it and pick individual tests, or use its checkbox to select the whole panel.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="shrink-0 border-b border-border/70 px-6 pb-4">
+          <Label className="text-[12px] font-medium text-fg-secondary">Priority level</Label>
+          <RadioGroup
+            value={urgency}
+            onValueChange={(value) => setUrgency(value as "routine" | "urgent")}
+            className="mt-1.5 grid grid-cols-2 gap-2"
+          >
+            <label
+              htmlFor="live-urgency-routine"
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors",
+                urgency === "routine"
+                  ? "border-foreground/40 bg-surface-1 font-medium"
+                  : "border-border bg-surface-2 text-fg-secondary",
+              )}
+            >
+              <RadioGroupItem value="routine" id="live-urgency-routine" />
+              <span>Routine</span>
+            </label>
+            <label
+              htmlFor="live-urgency-urgent"
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors",
+                urgency === "urgent"
+                  ? "border-danger-fill bg-danger-bg font-semibold text-danger-text"
+                  : "border-border bg-surface-2 text-fg-secondary",
+              )}
+            >
+              <RadioGroupItem value="urgent" id="live-urgency-urgent" />
+              <span>Urgent (STAT)</span>
+            </label>
+          </RadioGroup>
+        </div>
 
         {!hasCatalog ? (
           <div className="px-6 py-12 text-center text-[13px] text-fg-muted">
@@ -349,52 +383,13 @@ export function LiveOrderLabDialog({
               )}
             </div>
 
-            <div className="grid shrink-0 gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label className="text-[12px] font-medium text-fg-secondary">Priority level</Label>
-                <RadioGroup
-                  value={urgency}
-                  onValueChange={(value) => setUrgency(value as "routine" | "urgent")}
-                  className="grid grid-cols-2 gap-2"
-                >
-                  <label
-                    htmlFor="live-urgency-routine"
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-lg border p-2 text-[13px] transition-colors",
-                      urgency === "routine"
-                        ? "border-foreground/40 bg-surface-1 font-medium"
-                        : "border-border bg-surface-2 text-fg-secondary",
-                    )}
-                  >
-                    <RadioGroupItem value="routine" id="live-urgency-routine" />
-                    <span>Routine</span>
-                  </label>
-                  <label
-                    htmlFor="live-urgency-urgent"
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-lg border p-2 text-[13px] transition-colors",
-                      urgency === "urgent"
-                        ? "border-danger-fill bg-danger-bg font-semibold text-danger-text"
-                        : "border-border bg-surface-2 text-fg-secondary",
-                    )}
-                  >
-                    <RadioGroupItem value="urgent" id="live-urgency-urgent" />
-                    <span>Urgent (STAT)</span>
-                  </label>
-                </RadioGroup>
-              </div>
-
-              <div className="grid gap-1.5">
-                <Label className="text-[12px] font-medium text-fg-secondary">Estimated test total</Label>
-                <div className="flex h-9 items-center justify-between rounded-lg border border-border bg-surface-1 px-3">
-                  <span className="text-[12px] text-fg-muted">
-                    {selected.length} {selected.length === 1 ? "test" : "tests"} selected
-                  </span>
-                  <span className="font-mono text-[14px] font-bold tabular-nums text-foreground">
-                    {formatMoney(selectedTotal)}
-                  </span>
-                </div>
-              </div>
+            <div className="flex shrink-0 items-center justify-between border-t border-border/70 pt-3">
+              <span className="text-[12px] text-fg-muted">
+                {selected.length} {selected.length === 1 ? "test" : "tests"} selected · estimated total
+              </span>
+              <span className="font-mono text-[15px] font-bold tabular-nums text-foreground">
+                {formatMoney(selectedTotal)}
+              </span>
             </div>
 
             <div className="grid shrink-0 gap-1.5">
@@ -452,47 +447,48 @@ function PanelRow({
   return (
     <article
       className={cn(
-        "overflow-hidden rounded-lg border transition-colors",
-        selection !== "none" ? "border-foreground/30 bg-surface-1 shadow-sm" : "border-border/70 bg-surface-2",
+        "overflow-hidden rounded-md border border-border/70 bg-surface-2 transition-colors",
+        selection !== "none" && "border-l-[3px] border-l-primary bg-surface-1",
         allPending && "opacity-60",
       )}
     >
-      <div className="flex items-center gap-2 p-2.5">
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          className="flex size-7 shrink-0 items-center justify-center rounded-md text-fg-muted hover:bg-surface-1 hover:text-foreground"
-          aria-expanded={expanded}
-          aria-label={expanded ? `Collapse ${panel.name}` : `Expand ${panel.name}`}
-        >
-          {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-        </button>
-
+      <div className="flex items-center gap-2 p-2">
         <Checkbox
           checked={selection === "partial" ? "indeterminate" : selection === "full"}
           disabled={allPending}
           onCheckedChange={onTogglePanel}
+          aria-label={`Select all tests in ${panel.name}`}
         />
 
-        <button type="button" onClick={onToggleExpand} className="min-w-0 flex-1 text-left">
-          <div className="flex items-center gap-2">
-            <Layers className="size-3.5 shrink-0 text-clinical-fill" aria-hidden="true" />
-            <span className="truncate text-[14px] font-medium text-foreground">{panel.name}</span>
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left"
+          aria-expanded={expanded}
+          aria-label={expanded ? `Collapse ${panel.name}` : `Expand ${panel.name}`}
+        >
+          {expanded ? (
+            <ChevronDown className="size-3.5 shrink-0 text-fg-muted" aria-hidden="true" />
+          ) : (
+            <ChevronRight className="size-3.5 shrink-0 text-fg-muted" aria-hidden="true" />
+          )}
+          <Layers className="size-3.5 shrink-0 text-clinical-fill" aria-hidden="true" />
+          <div className="min-w-0 flex-1">
+            <span className="block truncate text-[14px] font-medium text-foreground">{panel.name}</span>
+            <p className="mt-0.5 text-[11px] text-fg-muted">
+              {panel.members.length} tests
+              {pickedCount > 0 ? ` · ${pickedCount} selected` : ""}
+              {allPending ? " · Already pending in lab" : ""}
+            </p>
           </div>
-          <p className="mt-0.5 text-[11px] text-fg-muted">
-            {panel.members.length} tests
-            {pickedCount > 0 ? ` · ${pickedCount} selected` : ""}
-            {allPending ? " · Already pending in lab" : ""}
-          </p>
+          <span className="shrink-0 font-mono text-[13px] font-medium tabular-nums text-fg-secondary">
+            {formatMoney(Number(panel.price))}
+          </span>
         </button>
-
-        <span className="shrink-0 font-mono text-[13px] font-medium tabular-nums text-fg-secondary">
-          {formatMoney(Number(panel.price))}
-        </span>
       </div>
 
       {expanded ? (
-        <div className="space-y-1 border-t border-border/60 bg-surface-1/50 px-2 py-2 pl-11">
+        <div className="space-y-1 border-t border-border/60 bg-surface-1/50 px-2 py-2 pl-9">
           {panel.members.map((member) => (
             <MemberRow
               key={member.id}
@@ -566,12 +562,12 @@ function TestRow({
   return (
     <label
       className={cn(
-        "flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-2.5 transition-colors",
+        "flex cursor-pointer items-center justify-between gap-3 rounded-md border border-border/70 bg-surface-2 p-2 transition-colors",
         disabled
-          ? "cursor-not-allowed border-border/50 bg-surface-1/60 opacity-60"
+          ? "cursor-not-allowed bg-surface-1/60 opacity-60"
           : checked
-            ? "border-foreground/30 bg-surface-1 shadow-sm"
-            : "border-border/70 bg-surface-2 hover:border-border-strong",
+            ? "border-l-[3px] border-l-primary bg-surface-1"
+            : "hover:border-border-strong",
       )}
     >
       <div className="flex min-w-0 items-center gap-3">

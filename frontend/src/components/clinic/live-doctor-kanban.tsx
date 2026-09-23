@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Clock,
   Filter,
-  GripVertical,
   Loader2,
   RefreshCw,
   Search,
@@ -343,12 +342,9 @@ function DoctorKanbanCard({ visit }: { visit: BoardVisit }) {
       className="group mb-3 block rounded-xl border border-border/60 bg-surface-2 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-2.5">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <GripVertical className="size-5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-          <p className="truncate font-heading text-lg font-bold text-foreground transition-colors group-hover:text-primary">
-            {visit.patient_name}
-          </p>
-        </div>
+        <p className="min-w-0 truncate font-heading text-lg font-bold text-foreground transition-colors group-hover:text-primary">
+          {visit.patient_name}
+        </p>
         <span className={`mt-2 size-3 shrink-0 rounded-full ${visitDot(visit.boardStatus)}`} />
       </div>
 

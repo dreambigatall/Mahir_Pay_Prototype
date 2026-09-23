@@ -51,6 +51,17 @@ type Draft = {
   notes: string;
 };
 
+function suggestFlagFromRange(resultValue: string, referenceRange: string): "normal" | "abnormal" | null {
+  const value = parseFloat(resultValue);
+  if (!Number.isFinite(value)) return null;
+  const match = referenceRange.match(/(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(-?\d+(?:\.\d+)?)/i);
+  if (!match) return null;
+  const low = parseFloat(match[1]!);
+  const high = parseFloat(match[2]!);
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return null;
+  return value < low || value > high ? "abnormal" : "normal";
+}
+
 export default function LabOrderPage() {
   const { requestId } = useParams<{ requestId: string }>();
   const [order, setOrder] = useState<WorklistDiagnosticOrder | null>(null);
@@ -239,6 +250,13 @@ function ResultCard({
   const [verifyOpen, setVerifyOpen] = useState(false);
   const verified = item.status === "verified" || item.status === "reviewed";
 
+  const suggestedFlag = useMemo(
+    () => suggestFlagFromRange(draft.resultValue, draft.referenceRange || preset?.referenceRange || ""),
+    [draft.resultValue, draft.referenceRange, preset],
+  );
+  const flagSuggestionAvailable =
+    !verified && !disabled && suggestedFlag && suggestedFlag !== draft.resultFlag && draft.resultFlag !== "critical";
+
   function applyPreset(value: string, flag: "normal" | "abnormal") {
     setDraft((current) => ({
       ...current,
@@ -309,15 +327,27 @@ function ResultCard({
         </div>
       ) : null}
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Field
+      <div className="mt-4">
+        <Label htmlFor={`${item.id}-value`} className="text-[13px] font-medium text-foreground">
+          Observed result value *
+        </Label>
+        <Input
           id={`${item.id}-value`}
-          label="Observed result value *"
+          className="mt-1 min-h-12 bg-background font-mono text-[17px] font-semibold tabular-nums"
           value={draft.resultValue}
-          onChange={(value) => setDraft((current) => ({ ...current, resultValue: value }))}
           disabled={disabled || verified}
+          onChange={(event) => setDraft((current) => ({ ...current, resultValue: event.target.value }))}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void save();
+            }
+          }}
           placeholder="e.g. 5.4 or Negative"
         />
+      </div>
+
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <Field
           id={`${item.id}-unit`}
           label="Measurement unit"
@@ -337,7 +367,19 @@ function ResultCard({
       </div>
 
       <div className="mt-4 grid gap-1.5">
-        <Label className="text-[13px] font-normal text-fg-secondary">Clinical flag interpretation</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label className="text-[13px] font-normal text-fg-secondary">Clinical flag interpretation</Label>
+          {flagSuggestionAvailable ? (
+            <button
+              type="button"
+              onClick={() => setDraft((current) => ({ ...current, resultFlag: suggestedFlag! }))}
+              className="inline-flex items-center gap-1 rounded-md border border-warning-fill/40 bg-warning-fill/10 px-2 py-1 text-[11px] font-medium text-warning-text transition-colors hover:border-warning-fill"
+            >
+              <Sparkles className="size-3" aria-hidden="true" />
+              Suggested: {suggestedFlag === "abnormal" ? "Abnormal (outside range)" : "Normal (within range)"} · Apply
+            </button>
+          ) : null}
+        </div>
         <RadioGroup
           value={draft.resultFlag}
           disabled={disabled || verified}
