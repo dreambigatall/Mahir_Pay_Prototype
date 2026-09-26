@@ -47,13 +47,24 @@ function DialogOverlay({
   );
 }
 
+/** Standard modal widths: confirm (yes/no), standard (simple form), large (multi-section form). */
+const dialogSizes = {
+  confirm: "sm:max-w-[420px]",
+  standard: "sm:max-w-[520px]",
+  large: "sm:max-w-[680px]",
+} as const;
+
+export type DialogSize = keyof typeof dialogSizes;
+
 function DialogContent({
   className,
   children,
   showCloseButton = true,
+  size,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
+  size?: DialogSize;
 }) {
   return (
     <DialogPortal>
@@ -62,6 +73,7 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 rounded-2xl bg-surface-2 p-6 text-foreground border border-border shadow-2xl duration-150 outline-none sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          size && dialogSizes[size],
           className,
         )}
         {...props}

@@ -34,8 +34,9 @@ export function LivePharmacyBoard() {
   const filtered = useMemo(() => {
     const source = tab === "waiting" ? waiting : tab === "ready" ? ready : items;
     const query = search.trim().toLowerCase();
-    if (!query) return source;
-    return source.filter((rx) => `${rx.patient_name} ${rx.visit_number} ${rx.items.map((item) => item.drug_name).join(" ")}`.toLowerCase().includes(query));
+    const matches = query ? source.filter((rx) => `${rx.patient_name} ${rx.visit_number} ${rx.items.map((item) => item.drug_name).join(" ")}`.toLowerCase().includes(query)) : source;
+    // Ready-to-dispense first: that is the pharmacist's actual work.
+    return [...matches].sort((a, b) => Number(a.status === "awaiting_payment") - Number(b.status === "awaiting_payment"));
   }, [items, ready, search, tab, waiting]);
   const remaining = ready.reduce((total, rx) => total + rx.items.reduce((sum, item) => sum + Math.max(0, Number(item.quantity_prescribed) - Number(item.quantity_dispensed)), 0), 0);
 
@@ -48,8 +49,8 @@ export function LivePharmacyBoard() {
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <div className="flex gap-2">
         <FilterChip active={tab === "all"} onClick={() => setTab("all")} label="All" count={items.length} />
-        <FilterChip active={tab === "waiting"} onClick={() => setTab("waiting")} label="Unpaid" count={waiting.length} />
-        <FilterChip active={tab === "ready"} onClick={() => setTab("ready")} label="Paid" count={ready.length} />
+        <FilterChip active={tab === "ready"} onClick={() => setTab("ready")} label="Ready to dispense" count={ready.length} />
+        <FilterChip active={tab === "waiting"} onClick={() => setTab("waiting")} label="Waiting for payment" count={waiting.length} />
       </div>
       <div className="relative max-w-md flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted" aria-hidden="true" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search patient, visit, or medicine" aria-label="Search pharmacy worklist" className="min-h-11 pl-9" /></div>
       <Button type="button" variant="outline" className="min-h-11 gap-2" disabled={loading} onClick={() => void load()}><RefreshCw className={loading ? "size-4 animate-spin" : "size-4"} aria-hidden="true" />Refresh</Button>
@@ -60,7 +61,7 @@ export function LivePharmacyBoard() {
       const units = rx.items.reduce((sum, item) => sum + Math.max(0, Number(item.quantity_prescribed) - Number(item.quantity_dispensed)), 0);
       return <Link key={rx.id} href={`/pharmacy/prescriptions/${rx.id}`} className="block rounded-xl border border-border bg-surface-2 p-5 transition-colors hover:border-primary/40 hover:bg-surface-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="truncate font-heading text-base font-semibold">{rx.patient_name}</h2><p className="mt-1 text-xs text-fg-muted">{rx.visit_number} · Prescribed by {rx.prescriber_name}</p></div><StatusBadge status={rx.status} /></div>
-        <div className="mt-4 border-t border-border/60 pt-3"><p className="truncate text-sm text-fg-secondary">{rx.items.map((item) => item.drug_name).join(", ")}</p><p className="mt-1 text-xs text-fg-muted">{unpaid ? "Preview only · waiting for reception payment" : `${rx.items.length} medicine${rx.items.length === 1 ? "" : "s"} · ${units} unit${units === 1 ? "" : "s"} remaining`}</p></div>
+        <div className="mt-4 border-t border-border/60 pt-3"><p className="truncate text-sm text-fg-secondary">{rx.items.map((item) => item.drug_name).join(", ")}</p><p className="mt-1 text-xs text-fg-muted">{unpaid ? "Locked · dispense unlocks once reception takes payment" : `${rx.items.length} medicine${rx.items.length === 1 ? "" : "s"} · ${units} unit${units === 1 ? "" : "s"} to dispense →`}</p></div>
       </Link>;
     })}</div> : <div className="rounded-xl border border-dashed border-border p-10 text-center"><PackageCheck className="mx-auto size-8 text-fg-muted" aria-hidden="true" /><p className="mt-3 font-medium">{tab === "waiting" ? "No unpaid prescriptions" : tab === "ready" ? "No paid prescriptions waiting" : "No prescriptions in the pipeline"}</p><p className="mt-1 text-sm text-fg-muted">New doctor orders appear here immediately. Dispense unlocks after full payment.</p></div>}
   </div>;

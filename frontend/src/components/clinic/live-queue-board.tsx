@@ -5,13 +5,12 @@ import Link from "next/link";
 import {
   Activity,
   AlertCircle,
+  ArrowRight,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
-  Filter,
-  Loader2,
-  RefreshCw,
+  Receipt,
   Search,
   ShieldAlert,
   Users,
@@ -19,15 +18,12 @@ import {
 } from "lucide-react";
 
 import { SendToDoctorButton } from "@/components/clinic/assign-visit-doctor-button";
+import { LastUpdated } from "@/components/clinic/last-updated";
+import { byPriorityThenWait, PriorityBadge, priorityBorder } from "@/components/clinic/priority-badge";
+import { StatFilter } from "@/components/clinic/stat-filter";
+import { WaitBadge } from "@/components/clinic/wait-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
 import { listBillableVisits, listPaidInvoicesToday, type BackendInvoice, type BillableVisit } from "@/lib/api/billing";
@@ -38,12 +34,12 @@ import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 const stations: Array<{ id: QueueStation; label: string; description: string }> = [
-  { id: "triage", label: "Triage", description: "Initial assessment" },
-  { id: "doctor", label: "Doctor", description: "Clinical consultation" },
-  { id: "lab", label: "Laboratory", description: "Tests and diagnostics" },
-  { id: "pharmacy", label: "Pharmacy", description: "Medicine dispensing" },
-  { id: "billing", label: "Billing", description: "Invoice and payment" },
-  { id: "procedure", label: "Procedure", description: "Treatment room" },
+  { id: "triage", label: "Triage", description: "Checked in · send to a doctor" },
+  { id: "doctor", label: "Doctor", description: "Waiting for or seeing the doctor" },
+  { id: "lab", label: "Laboratory", description: "Tests being done" },
+  { id: "pharmacy", label: "Pharmacy", description: "Collecting medicine" },
+  { id: "billing", label: "Billing", description: "Ready to pay · take payment" },
+  { id: "procedure", label: "Procedure", description: "In the treatment room" },
 ];
 
 export function LiveQueueBoard() {
@@ -52,6 +48,7 @@ export function LiveQueueBoard() {
   const [paidToday, setPaidToday] = useState<BackendInvoice[]>([]);
   const [query, setQuery] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "waiting" | "inService" | "urgent">("all");
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -79,6 +76,7 @@ export function LiveQueueBoard() {
         .map(billableVisitToQueueEntry);
       setEntries([...queueEntries, ...billingFromWorklist]);
       setPaidToday(paid.items);
+      setUpdatedAt(new Date());
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "The live queue could not be loaded.");
     } finally {
@@ -102,12 +100,16 @@ export function LiveQueueBoard() {
     else if (filterTab === "urgent") list = list.filter((entry) => entry.priority === "urgent" || entry.priority === "emergency");
 
     const value = query.trim().toLowerCase();
-    if (!value) return list;
-    return list.filter((entry) =>
-      [entry.patient_name, entry.medical_record_number, entry.visit_number, entry.doctor_name ?? ""]
-        .some((field) => field.toLowerCase().includes(value)),
-    );
+    if (value) {
+      list = list.filter((entry) =>
+        [entry.patient_name, entry.medical_record_number, entry.visit_number, entry.doctor_name ?? ""]
+          .some((field) => field.toLowerCase().includes(value)),
+      );
+    }
+    return [...list].sort(byPriorityThenWait);
   }, [entries, query, filterTab]);
+
+  const toggleFilter = (tab: typeof filterTab) => setFilterTab((current) => (current === tab ? "all" : tab));
 
   const stats = useMemo(() => ({
     total: entries.length,
@@ -152,68 +154,19 @@ export function LiveQueueBoard() {
   return (
     <section className="space-y-5" aria-label="Live clinic queue">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric label="Active queue" value={stats.total} detail="Across all stations" icon={Users} />
-        <Metric label="Waiting" value={stats.waiting} detail="Not yet called" icon={Clock3} tone="warning" />
-        <Metric label="In service" value={stats.inService} detail="Called or being served" icon={Activity} tone="success" />
-        <Metric label="Urgent priority" value={stats.urgent} detail="Urgent and emergency" icon={ShieldAlert} tone="danger" />
+        <StatFilter label="In clinic now" value={stats.total} hint="All stations · show everyone" icon={Users} tone="clinical" active={filterTab === "all"} onClick={() => setFilterTab("all")} />
+        <StatFilter label="Waiting" value={stats.waiting} hint="Not called yet" icon={Clock3} tone="warning" active={filterTab === "waiting"} onClick={() => toggleFilter("waiting")} />
+        <StatFilter label="Being served" value={stats.inService} hint="Called or with staff" icon={Activity} tone="success" active={filterTab === "inService"} onClick={() => toggleFilter("inService")} />
+        <StatFilter label="Urgent" value={stats.urgent} hint="Urgent and emergency" icon={ShieldAlert} tone="danger" active={filterTab === "urgent"} onClick={() => toggleFilter("urgent")} />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Select value={filterTab} onValueChange={(value) => setFilterTab(value as typeof filterTab)}>
-          <SelectTrigger className="h-9 w-full border-border/60 bg-background px-4 text-[13px] font-medium transition-colors hover:bg-surface-2 focus:ring-1 focus:ring-ring/50 sm:w-auto">
-            <div className="flex items-center gap-2">
-              <Filter className="size-3.5 text-primary" />
-              <SelectValue placeholder="Filter..." />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="py-2 pl-3">
-              <div className="flex min-w-40 w-full items-center justify-between">
-                <span>All patients</span>
-                <span className="ml-3 rounded-full bg-surface-2 px-1.5 py-0.5 font-mono text-[12px] text-fg-muted">{stats.total}</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="waiting" className="py-2 pl-3">
-              <div className="flex min-w-40 w-full items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock3 className="size-3.5 text-warning-fill" />
-                  <span>Waiting</span>
-                </div>
-                <span className="ml-3 rounded-full bg-warning-fill/10 px-1.5 py-0.5 font-mono text-[12px] text-warning-text">{stats.waiting}</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="inService" className="py-2 pl-3">
-              <div className="flex min-w-40 w-full items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Activity className="size-3.5 text-success-fill" />
-                  <span>In service</span>
-                </div>
-                <span className="ml-3 rounded-full bg-success-fill/10 px-1.5 py-0.5 font-mono text-[12px] text-success-text">{stats.inService}</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="urgent" className="py-2 pl-3">
-              <div className="flex min-w-40 w-full items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShieldAlert className="size-3.5 text-danger-fill" />
-                  <span>Urgent priority</span>
-                </div>
-                <span className="ml-3 rounded-full bg-danger-fill/10 px-1.5 py-0.5 font-mono text-[12px] text-danger-text">{stats.urgent}</span>
-              </div>
-            </SelectItem>
-          </SelectContent>
-        </Select>
-
-        <div className="flex items-center gap-2">
-          <div className="relative w-full sm:w-64">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, patient ID, or visit number" className="h-9 pl-8 pr-8 text-[13px]" />
-            {query ? <button type="button" onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-foreground" aria-label="Clear queue search"><X className="size-3.5" /></button> : null}
-          </div>
-          <Button type="button" variant="outline" className="h-9 gap-2" disabled={refreshing} onClick={() => void load(true)}>
-            {refreshing ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="size-4" aria-hidden="true" />}
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </Button>
+        <div className="relative w-full sm:w-80">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-fg-muted" aria-hidden="true" />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find patient by name, ID, or visit number" aria-label="Search the queue" className="h-9 pl-8 pr-8 text-[13px]" />
+          {query ? <button type="button" onClick={() => setQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-muted hover:text-foreground" aria-label="Clear queue search"><X className="size-3.5" /></button> : null}
         </div>
+        <LastUpdated at={updatedAt} refreshing={refreshing} onRefresh={() => void load(true)} />
       </div>
 
       {error ? <div role="alert" className="flex items-center justify-between gap-4 rounded-xl border border-danger-fill/30 bg-danger-fill/10 p-4 text-sm text-danger-text"><span className="flex items-center gap-2"><AlertCircle className="size-4 shrink-0" aria-hidden="true" />{error}</span><Button type="button" variant="outline" size="sm" onClick={() => void load()}>Retry</Button></div> : null}
@@ -248,7 +201,7 @@ export function LiveQueueBoard() {
                 </div>
                 <div className="space-y-3">
                   {cards.length === 0 ? (
-                    <p className="py-12 text-center text-[16px] text-fg-muted">No patients at this station</p>
+                    <p className="py-12 text-center text-sm text-fg-muted">{query || filterTab !== "all" ? "No matching patients" : "No one here right now"}</p>
                   ) : cards.map((entry) => (
                     <QueueCard
                       key={entry.id}
@@ -270,14 +223,14 @@ export function LiveQueueBoard() {
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success-fill" aria-hidden="true" />
                 <div>
                   <p className="font-heading text-xl font-bold tracking-tight text-foreground">Paid today</p>
-                  <p className="mt-0.5 text-xs text-fg-muted">Completed billing — not a queue stage</p>
+                  <p className="mt-0.5 text-xs text-fg-muted">Finished and paid · for reference</p>
                 </div>
               </div>
               <span className="rounded-full bg-success-fill/10 px-2.5 py-0.5 font-mono text-sm font-medium text-success-text">{paidTodayFiltered.length}</span>
             </div>
             <div className="space-y-3">
               {paidTodayFiltered.length === 0 ? (
-                <p className="py-12 text-center text-[16px] text-fg-muted">No paid invoices today</p>
+                <p className="py-12 text-center text-sm text-fg-muted">No payments yet today</p>
               ) : paidTodayFiltered.map((invoice) => (
                 <PaidTodayCard key={invoice.id} invoice={invoice} />
               ))}
@@ -296,7 +249,6 @@ export function LiveQueueBoard() {
           </button>
         ) : null}
       </div>
-      <p className="text-xs text-fg-muted">After full payment or credit release, visits leave Billing. Unpaid balances stay on the outstanding list.</p>
     </section>
   );
 }
@@ -310,7 +262,7 @@ function QueueCard({
   canSendToDoctor: boolean;
   onSent: (visit: BackendVisit) => void;
 }) {
-  const status = entry.status === "in_service" ? "In service" : entry.status === "called" ? "Called" : "Waiting";
+  const status = entry.status === "in_service" ? "Being served" : entry.status === "called" ? "Called" : "Waiting";
   const visitHref = entry.station === "doctor"
     ? `/doctor/visits/${entry.visit_id}`
     : entry.station === "billing"
@@ -318,28 +270,23 @@ function QueueCard({
       : `/receptionist/visits/${entry.visit_id}`;
 
   return (
-    <article className={cn("rounded-xl border bg-surface-2 p-4 shadow-sm transition-shadow hover:shadow-md", entry.priority === "emergency" ? "border-danger-fill/60" : entry.priority === "urgent" ? "border-warning-fill/60" : "border-border/60")}>
+    <article className={cn("rounded-xl border border-border/60 bg-surface-2 p-4 shadow-sm transition-shadow hover:shadow-md", priorityBorder(entry.priority))}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate font-heading text-base font-bold text-foreground">{entry.patient_name}</h3>
-          <p className="mt-1 font-mono text-xs text-fg-muted">{entry.medical_record_number}</p>
+          <Link href={visitHref} className="block truncate font-heading text-base font-bold text-foreground hover:text-primary hover:underline">
+            {entry.patient_name}
+          </Link>
+          <p className="mt-0.5 font-mono text-xs text-fg-muted">{entry.medical_record_number} · {entry.visit_number}</p>
         </div>
         <PriorityBadge priority={entry.priority} />
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border/50 pt-3 text-[13px]">
-        <div><p className="text-fg-muted">Visit</p><p className="mt-0.5 font-mono font-medium">{entry.visit_number}</p></div>
-        <div><p className="text-fg-muted">Status</p><p className="mt-0.5 font-medium">{status}</p></div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
+        <WaitBadge minutes={entry.wait_minutes} label={status} />
+        <span className="truncate text-fg-secondary">
+          {entry.doctor_name ? <>Dr. {entry.doctor_name}</> : <span className="text-fg-muted">No doctor yet</span>}
+        </span>
       </div>
-      <p className="mt-2.5 text-[13px] text-fg-secondary">
-        {entry.doctor_name ? <>Dr. {entry.doctor_name}</> : <span className="text-fg-muted">Doctor unassigned</span>}
-      </p>
-      <div className="mt-3 flex flex-col gap-2">
-        <div className="flex items-center justify-between text-[13px]">
-          <span className={entry.wait_minutes > 20 ? "font-semibold text-danger-text" : "text-fg-secondary"}>Waiting {entry.wait_minutes} min</span>
-          <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-xs">
-            <Link href={visitHref}>Open</Link>
-          </Button>
-        </div>
+      <div className="mt-3 border-t border-border/50 pt-3">
         {canSendToDoctor ? (
           <SendToDoctorButton
             visitId={entry.visit_id}
@@ -350,7 +297,15 @@ function QueueCard({
             className="min-h-9 w-full gap-1.5"
             onSent={onSent}
           />
-        ) : null}
+        ) : entry.station === "billing" ? (
+          <Button asChild size="sm" className="min-h-9 w-full gap-1.5">
+            <Link href={visitHref}><Receipt className="size-4" aria-hidden="true" />Take payment</Link>
+          </Button>
+        ) : (
+          <Button asChild variant="ghost" size="sm" className="min-h-9 w-full justify-between text-xs">
+            <Link href={visitHref}>View visit<ArrowRight className="size-3.5" aria-hidden="true" /></Link>
+          </Button>
+        )}
       </div>
     </article>
   );
@@ -388,15 +343,6 @@ function PaidTodayCard({ invoice }: { invoice: BackendInvoice }) {
 
 function formatPaidAt(value: string) {
   return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(value));
-}
-
-function PriorityBadge({ priority }: { priority: BackendQueueEntry["priority"] }) {
-  return <span className={cn("shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide", priority === "emergency" ? "bg-danger-fill/15 text-danger-text" : priority === "urgent" ? "bg-warning-fill/15 text-warning-text" : "bg-secondary text-secondary-foreground")}>{priority}</span>;
-}
-
-function Metric({ label, value, detail, icon: Icon, tone = "default" }: { label: string; value: number; detail: string; icon: typeof Users; tone?: "default" | "warning" | "success" | "danger" }) {
-  const tones = { default: "text-clinical-fill", warning: "text-warning-fill", success: "text-success-fill", danger: "text-danger-fill" };
-  return <div className="rounded-xl border border-border bg-surface-2 p-3.5"><div className="flex items-center justify-between text-xs font-medium text-fg-secondary"><span>{label}</span><Icon className={cn("size-4", tones[tone])} aria-hidden="true" /></div><p className="mt-1 font-mono text-2xl font-bold tabular-nums">{value}</p><p className="mt-0.5 text-[11px] text-fg-muted">{detail}</p></div>;
 }
 
 function QueueSkeleton() {

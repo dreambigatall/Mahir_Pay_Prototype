@@ -10,7 +10,8 @@ export type DiagnosticOrder={id:string;visit_id:string;encounter_id:string;patie
 const SELECT_ORDER=`select o.id,o.visit_id,o.encounter_id,o.patient_id,v.visit_number,
  concat_ws(' ',p.first_name,p.middle_name,p.last_name) patient_name,o.urgency,o.status,o.clinical_notes,o.ordered_by,o.ordered_at,
  coalesce((select jsonb_agg(jsonb_build_object('id',i.id,'catalog_item_id',i.catalog_item_id,'item_name',i.item_name,
- 'item_type',i.item_type,'status',i.status,'result',case when r.id is null then null else jsonb_build_object(
+ 'item_type',i.item_type,'status',i.status,
+ 'result_setup',(select c.result_setup from clinic.catalog_items c where c.id=i.catalog_item_id),'result',case when r.id is null then null else jsonb_build_object(
  'id',r.id,'result_value',r.result_value,'result_unit',r.result_unit,'result_flag',r.result_flag,
  'reference_range',r.reference_range,'notes',r.notes,'entered_by',r.entered_by,'entered_at',r.entered_at,
  'verified_by',r.verified_by,'verified_at',r.verified_at) end) order by i.created_at,i.id)

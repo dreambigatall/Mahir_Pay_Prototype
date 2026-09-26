@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
   Check,
   ChevronDown,
   ChevronRight,
@@ -15,7 +14,6 @@ import {
   UserCheck,
   Users,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Chip } from "@/components/ui/chip";
+import { NotificationsMenu } from "@/components/layout/notifications-menu";
 import { initials } from "@/lib/format";
 import { clinicName, navFor, roleHome, roleLabel } from "@/lib/nav";
 import { useSession } from "@/lib/session";
@@ -89,21 +88,7 @@ export function AppHeader() {
       <div className="flex items-center gap-2.5">
 
 
-        {/* Notifications Button with Badge */}
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Notifications"
-          className="relative size-10 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-1 transition-all"
-          onClick={() =>
-            toast.info("No unread clinical alerts", {
-              description: "All patient queues and lab requests are up to date.",
-            })
-          }
-        >
-          <Bell className="size-5" strokeWidth={2} />
-          <span className="absolute top-2 right-2.5 size-2 rounded-full bg-primary ring-2 ring-background" />
-        </Button>
+        <NotificationsMenu role={user.role} />
 
         {/* User Account Capsule Dropdown */}
         <DropdownMenu>

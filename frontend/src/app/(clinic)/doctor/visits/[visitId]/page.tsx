@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
-  AlertCircle,
   ArrowLeft,
   CheckCircle2,
   FileText,
@@ -20,7 +19,7 @@ import { toast } from "sonner";
 import { DoctorVitalsCard } from "@/components/clinic/doctor-vitals-card";
 import { LiveClinicalOrders } from "@/components/clinic/live-clinical-orders";
 import { LiveDoctorLabsSection } from "@/components/clinic/live-doctor-labs-section";
-import { PageHeader } from "@/components/clinic/page-header";
+import { PatientBanner } from "@/components/clinic/patient-banner";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import {
@@ -49,7 +48,6 @@ import {
 } from "@/lib/api/encounters";
 import type { BackendPatient } from "@/lib/api/patients";
 import type { BackendVisit } from "@/lib/api/workflow";
-import { ageFromDob } from "@/lib/format";
 import { announceCoreDataChanged } from "@/lib/core-events";
 import { cn } from "@/lib/utils";
 
@@ -143,9 +141,13 @@ export default function DoctorVisitPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        title={`${fullName(patient)} — Consultation`}
-        description={`${patient.medical_record_number} · ${ageFromDob(patient.date_of_birth)} yrs · ${patient.sex} · ${visit.visit_number}`}
+      <PatientBanner
+        patient={patient}
+        visitNumber={visit.visit_number}
+        priority={visit.priority}
+        reason={visit.reason}
+        backHref="/doctor"
+        backLabel="My queue"
         action={
           encounter && !signed ? (
             <CompleteVisitButton
@@ -175,9 +177,9 @@ export default function DoctorVisitPage() {
           {encounter ? (
             <Tabs defaultValue="consultation" className="w-full">
               <TabsList className="mb-6 flex h-auto w-fit flex-wrap gap-2 bg-transparent p-0">
-                <TabPill value="consultation" label="Consultation" />
-                <TabPill value="labs" label="Labs" icon={FlaskConical} />
-                <TabPill value="prescriptions" label="Rx" icon={Pill} />
+                <TabPill value="consultation" label="Notes & vitals" icon={FileText} />
+                <TabPill value="labs" label="Lab tests" icon={FlaskConical} />
+                <TabPill value="prescriptions" label="Prescriptions" icon={Pill} />
               </TabsList>
 
               <TabsContent value="consultation" className="mt-0 focus-visible:outline-none">
@@ -195,12 +197,6 @@ export default function DoctorVisitPage() {
                         }
                       }}
                     />
-                    {patient.allergies.length ? (
-                      <div className="mt-6 rounded-xl border border-danger-fill/30 bg-danger-fill/10 p-3 text-sm text-danger-text">
-                        <strong>Known allergies:</strong>{" "}
-                        {patient.allergies.map((a) => a.allergen).join(", ")}
-                      </div>
-                    ) : null}
                   </div>
                   <ClinicalNotesSection
                     encounter={encounter}
@@ -570,24 +566,12 @@ function PatientSidebar({
         </div>
         <dl className="space-y-3 text-sm">
           <SidebarItem label="Phone" value={patient.phone || "—"} />
-          <SidebarItem label="Reason" value={visit.reason} />
-          <SidebarItem label="Priority" value={visit.priority} capitalize />
+          {patient.emergency_contact_name ? (
+            <SidebarItem label="Emergency contact" value={[patient.emergency_contact_name, patient.emergency_contact_phone].filter(Boolean).join(" · ")} />
+          ) : null}
           <SidebarItem label="Doctor" value={visit.doctor_name || encounter?.clinician_name || "Unassigned"} />
         </dl>
       </section>
-      {patient.allergies.length ? (
-        <section className="rounded-xl border border-danger-fill/30 bg-danger-fill/10 p-4">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-danger-text">
-            <AlertCircle className="size-4" aria-hidden="true" />
-            Allergies
-          </h3>
-          <ul className="mt-2 space-y-1 text-sm text-danger-text">
-            {patient.allergies.map((allergy) => (
-              <li key={allergy.id}>{allergy.allergen}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
     </aside>
   );
 }

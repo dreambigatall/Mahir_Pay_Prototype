@@ -77,18 +77,30 @@ export const QUEUE_COLUMNS = [
 ] as const;
 
 export const DOCTOR_QUEUE_COLUMNS = [
-  { id: "registered", title: "Checked in", statuses: ["registered"] as VisitStatus[] },
+  {
+    id: "registered",
+    title: "Waiting for me",
+    description: "Checked in · not seen yet",
+    statuses: ["registered"] as VisitStatus[],
+  },
   {
     id: "in-consultation",
     title: "In consultation",
+    description: "Currently with me",
     statuses: ["in-consultation"] as VisitStatus[],
   },
   {
     id: "awaiting-lab",
-    title: "Awaiting lab",
+    title: "Lab tests",
+    description: "Waiting for results, or results back",
     statuses: ["awaiting-lab", "lab-complete"] as VisitStatus[],
   },
-  { id: "completed", title: "Completed", statuses: ["billed"] as VisitStatus[] },
+  {
+    id: "completed",
+    title: "Completed",
+    description: "My part is finished",
+    statuses: ["billed"] as VisitStatus[],
+  },
 ] as const;
 
 export const LAB_COLUMNS = [

@@ -18,10 +18,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FormField, FormGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ResultSetupEditor } from "@/components/clinic/result-setup-editor";
 import { ApiError } from "@/lib/api/client";
 import { createCatalogItem, type CatalogItemType } from "@/lib/api/catalog";
 import { announceCoreDataChanged } from "@/lib/core-events";
 import { formatMoney } from "@/lib/format";
+import { draftFromSetup, setupFromDraft, suggestSetup, type SetupDraft } from "@/lib/lab-result-setup";
 import { cn } from "@/lib/utils";
 
 type AddableCatalogType = Exclude<CatalogItemType, "lab_panel" | "supply">;
@@ -84,6 +86,10 @@ export function AddCatalogItemDialog({
   const [openingQuantity, setOpeningQuantity] = useState("");
   const [reorderLevel, setReorderLevel] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [setupDraft, setSetupDraft] = useState<SetupDraft>(() => draftFromSetup(null));
+  // Until the admin edits the result setup, it follows the suggestion for the typed name.
+  const [setupTouched, setSetupTouched] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
 
   const currentOption = typeOptions.find((opt) => opt.type === type) ?? typeOptions[0];
 
@@ -94,10 +100,19 @@ export function AddCatalogItemDialog({
     setTrackInventory(true);
     setOpeningQuantity("");
     setReorderLevel("");
+    setSetupDraft(draftFromSetup(null));
+    setSetupTouched(false);
+    setSetupError(null);
     setType(defaultType === "lab_panel" || defaultType === "supply" ? "lab_test" : defaultType);
   }
 
   const isDrug = type === "drug";
+  const isLabTest = type === "lab_test" || type === "radiology";
+
+  function changeName(next: string) {
+    setName(next);
+    if (!setupTouched) setSetupDraft(draftFromSetup(suggestSetup(next)));
+  }
   const tracksStock = isDrug && trackInventory;
 
   async function handleSubmit(event: React.FormEvent) {
@@ -121,6 +136,13 @@ export function AddCatalogItemDialog({
       }
     }
 
+    const { setup, error: setupProblem } = isLabTest ? setupFromDraft(setupDraft) : { setup: null, error: null };
+    if (setupProblem) {
+      setSetupError(setupProblem);
+      return;
+    }
+    setSetupError(null);
+
     setSubmitting(true);
     try {
       await createCatalogItem({
@@ -131,6 +153,7 @@ export function AddCatalogItemDialog({
         trackInventory: tracksStock,
         openingQuantity: tracksStock ? opening : 0,
         reorderLevel: tracksStock ? reorder : 0,
+        resultSetup: isLabTest && setup ? setup : undefined,
       });
       announceCoreDataChanged();
       onSaved?.();
@@ -162,7 +185,7 @@ export function AddCatalogItemDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[520px]">
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[560px]">
         <DialogHeader className="shrink-0 px-6 pt-6 pb-1">
           <DialogTitle>Add to service catalog</DialogTitle>
           <DialogDescription>
@@ -209,7 +232,7 @@ export function AddCatalogItemDialog({
               <FormField id="catalog-item-name" label="Item or service name" required>
                 <Input
                   value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  onChange={(event) => changeName(event.target.value)}
                   placeholder={currentOption.placeholder}
                   required
                   autoFocus
@@ -230,6 +253,21 @@ export function AddCatalogItemDialog({
                 />
               </FormField>
             </FormGroup>
+
+            {isLabTest ? (
+              <FormGroup eyebrow="Lab result" hint="How the lab records this test's result">
+                <ResultSetupEditor
+                  testName={name}
+                  draft={setupDraft}
+                  error={setupError}
+                  onChange={(next) => {
+                    setSetupDraft(next);
+                    setSetupTouched(true);
+                    setSetupError(null);
+                  }}
+                />
+              </FormGroup>
+            ) : null}
 
             {isDrug ? (
               <FormGroup eyebrow="Inventory tracking" hint="Only medications can track stock counts">
