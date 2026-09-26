@@ -1,8 +1,10 @@
 import type{Pool,PoolClient}from"pg";import{withTransaction}from"../../database/transaction";import type{Queryable}from"../../database/types";import{AppError}from"../../shared/errors/app-error";import type{AuditEventInput}from"../audit/audit.repository";import{AuditRepository}from"../audit/audit.repository";
 import{fulfillPaidPrescription}from"../pharmacy/prescription-fulfillment";
 import{completeBillingQueue}from"../workflow/queue-helpers";
-export type Invoice={id:string;invoice_number:string;visit_id:string;patient_id:string;visit_number:string;patient_name:string;status:string;subtotal:string;discount_amount:string;total:string;amount_paid:string;balance_due:string;discount_reason:string|null;issued_at:Date;paid_at:Date|null;pending_rx_count:number;pending_rx_summary:string|null;lines:Array<Record<string,unknown>>;payments:Array<Record<string,unknown>>};
+export type Invoice={id:string;invoice_number:string;visit_id:string;patient_id:string;visit_number:string;patient_name:string;status:string;subtotal:string;discount_amount:string;total:string;amount_paid:string;balance_due:string;discount_reason:string|null;issued_at:Date;paid_at:Date|null;due_at:string|null;credit_approved_by:string|null;credit_approved_at:Date|null;credit_note:string|null;on_credit:boolean;pending_rx_count:number;pending_rx_summary:string|null;lines:Array<Record<string,unknown>>;payments:Array<Record<string,unknown>>};
 const SELECT_INVOICE=`select i.id,i.invoice_number,i.visit_id,i.patient_id,v.visit_number,concat_ws(' ',p.first_name,p.middle_name,p.last_name) patient_name,i.status,i.subtotal::text,i.discount_amount::text,i.total::text,i.amount_paid::text,(i.total-i.amount_paid)::text balance_due,i.discount_reason,i.issued_at,i.paid_at,
+ i.due_at::text,i.credit_approved_by,i.credit_approved_at,i.credit_note,
+ (i.credit_approved_at is not null and i.status <> 'paid') as on_credit,
  coalesce((select count(*)::int from clinic.prescriptions r where r.visit_id=i.visit_id and r.status='awaiting_payment'),0) pending_rx_count,
  (select string_agg(distinct x.drug_name, ', ' order by x.drug_name)
   from clinic.prescriptions r
@@ -24,18 +26,45 @@ export class BillingRepository{constructor(private readonly pool:Pool,private re
   await c.query("update clinic.visits set status='ready_for_billing',updated_at=now() where id=$1",[input.visitId]);if(total===0)await releaseAfterPayment(c,input.visitId,actor);
   const invoice=(await this.find(id,c))!;await this.audit.record({...event,resourceId:id,afterData:invoice},c);return invoice;
  });}
- async outstanding(limit:number){const r=await this.pool.query<Invoice>(`${SELECT_INVOICE} where i.status in('issued','partially_paid') order by i.issued_at,i.id limit $1`,[limit]);return r.rows;}
+ async outstanding(limit:number){const r=await this.pool.query<Invoice>(`${SELECT_INVOICE} where i.status in('issued','partially_paid') order by i.due_at nulls last,i.issued_at,i.id limit $1`,[limit]);return r.rows;}
  async paidToday(limit:number){const r=await this.pool.query<Invoice>(`${SELECT_INVOICE} where i.status='paid' and i.paid_at>=current_date order by i.paid_at desc,i.id limit $1`,[limit]);return r.rows;}
  async byVisit(visitId:string){const r=await this.pool.query<Invoice>(`${SELECT_INVOICE} where i.visit_id=$1`,[visitId]);return r.rows[0]??null;}
  async pay(invoiceId:string,input:{amount:number;method:string;reference?:string},actor:string,event:AuditEventInput){return withTransaction(this.pool,async c=>{
   const locked=await c.query<{visit_id:string;status:string;total:string;amount_paid:string}>("select visit_id,status,total::text,amount_paid::text from clinic.invoices where id=$1 for update",[invoiceId]);const i=locked.rows[0];if(!i)throw new AppError(404,"INVOICE_NOT_FOUND","Invoice was not found");if(!["issued","partially_paid"].includes(i.status))throw new AppError(409,"INVOICE_NOT_PAYABLE","Invoice is not open for payment");const balance=Number(i.total)-Number(i.amount_paid);if(input.amount>balance)throw new AppError(409,"PAYMENT_EXCEEDS_BALANCE","Payment exceeds the outstanding balance");
   const pr=await c.query<{id:string;receipt_number:string}>("insert into clinic.payments(invoice_id,amount,method,reference,collected_by)values($1,$2::numeric,$3,$4,$5)returning id,receipt_number",[invoiceId,input.amount,input.method,input.reference??null,actor]);const next=Number(i.amount_paid)+input.amount;const paid=Math.abs(next-Number(i.total))<0.001;await c.query("update clinic.invoices set amount_paid=$2::numeric,status=$3,paid_at=case when $3='paid' then now() else null end,updated_at=now() where id=$1",[invoiceId,next,paid?"paid":"partially_paid"]);if(paid)await releaseAfterPayment(c,i.visit_id,actor);const invoice=(await this.find(invoiceId,c))!;await this.audit.record({...event,resourceId:pr.rows[0]!.id,afterData:{receiptNumber:pr.rows[0]!.receipt_number,invoice}},c);return invoice;
  });}
+ async authorizeCredit(invoiceId:string,input:{dueAt:string;note?:string},actor:string,event:AuditEventInput){return withTransaction(this.pool,async c=>{
+  const locked=await c.query<{visit_id:string;status:string;total:string;amount_paid:string;credit_approved_at:Date|null}>(
+    "select visit_id,status,total::text,amount_paid::text,credit_approved_at from clinic.invoices where id=$1 for update",[invoiceId]);
+  const i=locked.rows[0];
+  if(!i)throw new AppError(404,"INVOICE_NOT_FOUND","Invoice was not found");
+  if(!["issued","partially_paid"].includes(i.status))throw new AppError(409,"INVOICE_NOT_PAYABLE","Invoice is not open for credit settlement");
+  if(i.credit_approved_at)throw new AppError(409,"CREDIT_ALREADY_AUTHORIZED","This invoice was already released on credit");
+  const balance=Number(i.total)-Number(i.amount_paid);
+  if(balance<=0)throw new AppError(409,"INVOICE_ALREADY_SETTLED","There is no outstanding balance to place on credit");
+  if(!isValidDueDate(input.dueAt))throw new AppError(400,"INVALID_DUE_DATE","Due date must be today or a future date");
+
+  await c.query(
+    `update clinic.invoices
+     set status='partially_paid',
+         due_at=$2::date,
+         credit_approved_by=$3,
+         credit_approved_at=now(),
+         credit_note=$4,
+         updated_at=now()
+     where id=$1`,
+    [invoiceId,input.dueAt,actor,input.note??null],
+  );
+  await releaseAfterPayment(c,i.visit_id,actor);
+  const invoice=(await this.find(invoiceId,c))!;
+  await this.audit.record({...event,resourceId:invoiceId,afterData:invoice},c);
+  return invoice;
+ });}
  private async find(id:string,db:Queryable){const r=await db.query<Invoice>(`${SELECT_INVOICE} where i.id=$1`,[id]);return r.rows[0]??null;}
 }
 async function releaseAfterPayment(c:PoolClient,visitId:string,actor:string){
   // Billing money work is done — remove from the live billing queue immediately.
-  await completeBillingQueue(c,visitId,actor,"Invoice paid in full");
+  await completeBillingQueue(c,visitId,actor,"Billing settlement complete");
   const rx=await c.query<{id:string}>("update clinic.prescriptions set status='payment_approved',updated_at=now() where visit_id=$1 and status='awaiting_payment' returning id",[visitId]);
   if(!rx.rowCount){
     await c.query("update clinic.visits set status='billed',completed_at=now(),updated_at=now() where id=$1",[visitId]);
@@ -70,4 +99,14 @@ async function releaseAfterPayment(c:PoolClient,visitId:string,actor:string){
 
 function isDeferredPharmacyStockError(error:unknown){
   return error instanceof AppError&&["INSUFFICIENT_USABLE_STOCK","INVENTORY_BALANCE_MISSING"].includes(error.code);
+}
+
+function isValidDueDate(value:string){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const [year,month,day]=value.split("-").map(Number);
+  const due=new Date(Date.UTC(year!,month!-1,day!));
+  if(due.getUTCFullYear()!==year||due.getUTCMonth()!==month!-1||due.getUTCDate()!==day)return false;
+  const today=new Date();
+  const todayUtc=Date.UTC(today.getFullYear(),today.getMonth(),today.getDate());
+  return due.getTime()>=todayUtc;
 }

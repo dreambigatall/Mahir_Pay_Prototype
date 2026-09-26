@@ -15,10 +15,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ResultSetupEditor } from "@/components/clinic/result-setup-editor";
 import { ApiError } from "@/lib/api/client";
 import { updateCatalogItem, type CatalogItem } from "@/lib/api/catalog";
 import { announceCoreDataChanged } from "@/lib/core-events";
 import { formatMoney } from "@/lib/format";
+import { draftFromSetup, parseResultSetup, setupFromDraft, type SetupDraft } from "@/lib/lab-result-setup";
 
 export function EditCatalogItemDialog({
   item,
@@ -36,7 +38,10 @@ export function EditCatalogItemDialog({
   const [unit, setUnit] = useState(item.unit ?? "");
   const [reorderLevel, setReorderLevel] = useState(item.reorder_level ?? "");
   const [submitting, setSubmitting] = useState(false);
+  const [setupDraft, setSetupDraft] = useState<SetupDraft>(() => draftFromSetup(parseResultSetup(item.result_setup)));
+  const [setupError, setSetupError] = useState<string | null>(null);
 
+  const isLabTest = item.item_type === "lab_test" || item.item_type === "radiology";
   const trackedStock = (item.item_type === "drug" || item.item_type === "supply") && item.track_inventory;
 
   async function handleSubmit(event: React.FormEvent) {
@@ -56,11 +61,19 @@ export function EditCatalogItemDialog({
       }
     }
 
+    const { setup, error: setupProblem } = isLabTest ? setupFromDraft(setupDraft) : { setup: null, error: null };
+    if (setupProblem) {
+      setSetupError(setupProblem);
+      return;
+    }
+    setSetupError(null);
+
     setSubmitting(true);
     try {
       await updateCatalogItem(item.id, {
         name: name.trim(),
         price: amount,
+        ...(isLabTest ? { resultSetup: setup } : {}),
         ...(trackedStock
           ? {
               unit: unit.trim() || null,
@@ -91,10 +104,12 @@ export function EditCatalogItemDialog({
           setPrice(item.price);
           setUnit(item.unit ?? "");
           setReorderLevel(item.reorder_level ?? "");
+          setSetupDraft(draftFromSetup(parseResultSetup(item.result_setup)));
+          setSetupError(null);
         }
       }}
     >
-      <DialogContent className="p-6 sm:max-w-[540px]">
+      <DialogContent className={isLabTest ? "max-h-[90vh] overflow-y-auto p-6 sm:max-w-[560px]" : "p-6 sm:max-w-[540px]"}>
         <DialogHeader>
           <DialogTitle>Edit catalog item</DialogTitle>
           <DialogDescription>
@@ -131,6 +146,24 @@ export function EditCatalogItemDialog({
               required
             />
           </div>
+
+          {isLabTest ? (
+            <div className="space-y-3 rounded-xl border border-border/70 p-4">
+              <div>
+                <p className="text-[13px] font-semibold text-foreground">Lab result</p>
+                <p className="text-[12px] text-fg-muted">How the lab records this test&apos;s result.</p>
+              </div>
+              <ResultSetupEditor
+                testName={name}
+                draft={setupDraft}
+                error={setupError}
+                onChange={(next) => {
+                  setSetupDraft(next);
+                  setSetupError(null);
+                }}
+              />
+            </div>
+          ) : null}
 
           {trackedStock ? (
             <div className="space-y-3 rounded-xl border border-border/70 bg-surface-1 p-4">

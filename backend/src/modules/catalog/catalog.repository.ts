@@ -15,6 +15,7 @@ export type CatalogItem = {
   description: string | null;
   unit: string | null;
   price: string;
+  result_setup: unknown;
   track_inventory: boolean;
   supply_group_id: string | null;
   supply_group_name: string | null;
@@ -74,7 +75,7 @@ const SELECT_USAGE_REQUEST = `select r.id,r.catalog_item_id,c.item_code,c.name i
   left join clinic.users rev on rev.id=r.reviewed_by
   left join clinic.inventory_balances b on b.catalog_item_id=c.id`;
 
-const SELECT_ITEM = `select c.id,c.item_code,c.item_type,c.name,c.description,c.unit,c.price::text,
+const SELECT_ITEM = `select c.id,c.item_code,c.item_type,c.name,c.description,c.unit,c.price::text,c.result_setup,
   c.track_inventory,c.supply_group_id,g.name as supply_group_name,c.active,b.quantity_on_hand::text,b.reorder_level::text,
   coalesce((select sum(ib.quantity_remaining) from clinic.inventory_batches ib where ib.catalog_item_id=c.id and ib.quantity_remaining>0 and (ib.expiry_date is null or ib.expiry_date>=current_date)),0)::text usable_quantity,
   (select min(ib.expiry_date) from clinic.inventory_batches ib where ib.catalog_item_id=c.id and ib.quantity_remaining>0 and ib.expiry_date>=current_date)::text next_expiry,
@@ -184,6 +185,7 @@ export class CatalogRepository {
       openingQuantity: number;
       reorderLevel: number;
       supplyGroupId?: string;
+      resultSetup?: unknown;
     },
     actorUserId: string,
     event: AuditEventInput,
@@ -191,8 +193,8 @@ export class CatalogRepository {
     return withTransaction(this.pool, async (client) => {
       const created = await client.query<{ id: string }>(
         `insert into clinic.catalog_items
-          (item_type,name,description,unit,price,track_inventory,supply_group_id,created_by,updated_by)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$8) returning id`,
+          (item_type,name,description,unit,price,track_inventory,supply_group_id,result_setup,created_by,updated_by)
+         values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$9) returning id`,
         [
           input.itemType,
           input.name,
@@ -201,6 +203,7 @@ export class CatalogRepository {
           input.price,
           input.trackInventory,
           input.supplyGroupId ?? null,
+          input.resultSetup ? JSON.stringify(input.resultSetup) : null,
           actorUserId,
         ],
       );
@@ -395,6 +398,7 @@ export class CatalogRepository {
       active?: boolean;
       reorderLevel?: number;
       memberItemIds?: string[];
+      resultSetup?: unknown;
     },
     actorUserId: string,
     event: AuditEventInput,
@@ -430,7 +434,15 @@ export class CatalogRepository {
             [itemId, memberPrice, actorUserId],
           );
         }
-      } else if (input.memberItemIds) {
+      }
+      if (input.resultSetup && before.item_type !== "lab_test" && before.item_type !== "radiology") {
+        throw new AppError(
+          400,
+          "RESULT_SETUP_INVALID",
+          "Only lab tests and imaging can have a result setup",
+        );
+      }
+      if (before.item_type !== "lab_panel" && input.memberItemIds) {
         throw new AppError(
           400,
           "PANEL_MEMBERS_INVALID",
@@ -441,7 +453,8 @@ export class CatalogRepository {
         `update clinic.catalog_items set name=coalesce($2,name),
           description=case when $3::boolean then $4 else description end,
           unit=case when $5::boolean then $6 else unit end,
-          price=coalesce($7,price),active=coalesce($8,active),updated_by=$9,updated_at=now()
+          price=coalesce($7,price),active=coalesce($8,active),updated_by=$9,updated_at=now(),
+          result_setup=case when $10::boolean then $11::jsonb else result_setup end
          where id=$1`,
         [
           itemId,
@@ -453,6 +466,8 @@ export class CatalogRepository {
           input.price ?? null,
           input.active ?? null,
           actorUserId,
+          "resultSetup" in input,
+          input.resultSetup ? JSON.stringify(input.resultSetup) : null,
         ],
       );
       if (input.reorderLevel !== undefined) {

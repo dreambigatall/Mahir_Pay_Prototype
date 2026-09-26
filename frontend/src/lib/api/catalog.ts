@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api/client";
+import type { ResultSetup } from "@/lib/lab-result-setup";
 import type { CatalogItem, LabPanel, PanelMember } from "@/lib/api/clinical";
 
 export type { CatalogItem, LabPanel, PanelMember };
@@ -56,6 +57,7 @@ export function createCatalogItem(input: {
   trackInventory?: boolean;
   openingQuantity?: number;
   reorderLevel?: number;
+  resultSetup?: ResultSetup;
 }) {
   return apiRequest<{ item: CatalogItem }>("/catalog", {
     method: "POST",
@@ -68,6 +70,7 @@ export function createCatalogItem(input: {
       trackInventory: input.trackInventory ?? false,
       openingQuantity: input.openingQuantity ?? 0,
       reorderLevel: input.reorderLevel ?? 0,
+      resultSetup: input.resultSetup,
     }),
   });
 }
@@ -98,6 +101,7 @@ export function updateCatalogItem(
     active?: boolean;
     reorderLevel?: number;
     memberItemIds?: string[];
+    resultSetup?: ResultSetup | null;
   },
 ) {
   return apiRequest<{ item: CatalogItem | LabPanel }>(`/catalog/${itemId}`, {

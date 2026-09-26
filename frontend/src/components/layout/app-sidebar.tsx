@@ -30,8 +30,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useClinic } from "@/lib/clinic-store";
-import { CLINIC_TODAY, initials } from "@/lib/format";
+import { useNavCounts } from "@/lib/use-nav-counts";
 import { clinicName, designNav, navFor, roleHome, roleLabel } from "@/lib/nav";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -40,6 +39,7 @@ const rolePortals: Record<string, string> = {
   doctor: "Doctor Workspace",
   receptionist: "Front Desk & Billing",
   lab: "Laboratory Diagnostics",
+  pharmacist: "Pharmacy & Dispensing",
   admin: "Admin & Operations",
 };
 
@@ -47,7 +47,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { user, logout } = useSession();
   const { isMobile, setOpenMobile, toggleSidebar, state } = useSidebar();
-  const { visits, labRequests, catalog, courses, doses } = useClinic();
+  const counts = useNavCounts(user?.role, user?.id);
 
   if (!user) return null;
 
@@ -57,44 +57,9 @@ export function AppSidebar() {
     if (isMobile) setOpenMobile(false);
   };
 
-  // Dynamic live count badges for nav items
   const getBadgeForHref = (href: string) => {
-    if (href === "/doctor") {
-      const myVisits = visits.filter(
-        (v) =>
-          v.doctorId === user.id &&
-          v.status !== "billed" &&
-          v.status !== "cancelled",
-      );
-      return myVisits.length > 0 ? String(myVisits.length) : null;
-    }
-    if (href === "/receptionist") {
-      const waiting = visits.filter((v) => v.status === "registered");
-      return waiting.length > 0 ? String(waiting.length) : null;
-    }
-    if (href === "/receptionist/billing") {
-      const unpaid = visits.filter(
-        (v) => v.status === "ready-for-billing" || v.status === "lab-complete",
-      );
-      return unpaid.length > 0 ? String(unpaid.length) : null;
-    }
-    if (href === "/lab") {
-      const pendingLabs = labRequests.filter(
-        (req) => req.status !== "result-ready",
-      );
-      return pendingLabs.length > 0 ? String(pendingLabs.length) : null;
-    }
-    if (href === "/receptionist/courses") {
-      const due = doses.filter(
-        (dose) =>
-          dose.scheduledDate === CLINIC_TODAY &&
-          dose.status !== "given" &&
-          dose.status !== "missed" &&
-          courses.some((course) => course.id === dose.courseId && course.status === "active"),
-      );
-      return due.length > 0 ? String(due.length) : null;
-    }
-    return null;
+    const count = counts[href];
+    return count ? (count > 99 ? "99+" : String(count)) : null;
   };
 
   return (
@@ -168,11 +133,16 @@ export function AppSidebar() {
                           strokeWidth={active ? 2 : 1.75}
                         />
                         <span className="flex-1 truncate">{item.label}</span>
-                        {active && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 size-2 rounded-full bg-clinical-fill group-data-[collapsible=icon]:hidden" />
-                        )}
                       </Link>
                     </SidebarMenuButton>
+                    {badge ? (
+                      <SidebarMenuBadge
+                        aria-label={`${badge} need attention`}
+                        className="top-1/2 right-2 -translate-y-1/2 rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground peer-hover/menu-button:text-primary-foreground peer-data-active/menu-button:text-primary-foreground"
+                      >
+                        {badge}
+                      </SidebarMenuBadge>
+                    ) : null}
                   </SidebarMenuItem>
                 );
               })}

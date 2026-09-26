@@ -52,6 +52,7 @@ export class CatalogService {
           trackInventory: input.trackInventory,
           openingQuantity: input.openingQuantity,
           reorderLevel: input.reorderLevel,
+          resultSetup: input.resultSetup,
         },
         actor,
         {

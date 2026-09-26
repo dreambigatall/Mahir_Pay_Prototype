@@ -4,13 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
+  ArrowRight,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
   Filter,
   FlaskConical,
-  GripVertical,
   Loader2,
   RefreshCw,
   Search,
@@ -31,16 +31,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
 import { listDiagnosticWorklist, type WorklistDiagnosticOrder } from "@/lib/api/diagnostics";
 import { CORE_DATA_CHANGED_EVENT } from "@/lib/core-events";
+import { cn } from "@/lib/utils";
 
 type FilterTab = "all" | "urgent" | "pending" | "verified" | "completed";
 type LabColumnId = "requested" | "in_progress" | "result_ready" | "verified" | "reviewed";
 
-const LAB_COLUMNS: { id: LabColumnId; title: string }[] = [
-  { id: "requested", title: "Requested" },
-  { id: "in_progress", title: "In analysis" },
-  { id: "result_ready", title: "Pending verification" },
-  { id: "verified", title: "Verified" },
-  { id: "reviewed", title: "Completed today" },
+const LAB_COLUMNS: { id: LabColumnId; title: string; description: string }[] = [
+  { id: "requested", title: "To start", description: "New requests from doctors" },
+  { id: "in_progress", title: "Testing", description: "Enter results for each test" },
+  { id: "result_ready", title: "To verify", description: "Check results, then verify" },
+  { id: "verified", title: "Sent to doctor", description: "Waiting for doctor review" },
+  { id: "reviewed", title: "Done", description: "Doctor has reviewed" },
 ];
 
 function orderColumn(status: string): LabColumnId {
@@ -149,7 +150,10 @@ export function LiveLabBoard() {
       );
     }
 
-    return list;
+    // Urgent first, then oldest request first.
+    return [...list].sort((a, b) =>
+      (a.urgency === "urgent" ? 0 : 1) - (b.urgency === "urgent" ? 0 : 1)
+      || new Date(a.ordered_at).getTime() - new Date(b.ordered_at).getTime());
   }, [filterTab, orders, search]);
 
   const checkScroll = () => {
@@ -361,15 +365,18 @@ export function LiveLabBoard() {
             const columnCards = filteredOrders.filter((order) => orderColumn(order.status) === column.id);
             return (
               <div key={column.id} className="w-[400px] shrink-0 rounded-2xl bg-card p-5 shadow-sm">
-                <div className="mb-5 flex items-center justify-between border-b border-border/50 pb-3.5">
-                  <p className="font-heading text-xl font-bold tracking-tight text-foreground">{column.title}</p>
+                <div className="mb-5 flex items-start justify-between border-b border-border/50 pb-3.5">
+                  <div>
+                    <p className="font-heading text-xl font-bold tracking-tight text-foreground">{column.title}</p>
+                    <p className="mt-0.5 text-xs text-fg-muted">{column.description}</p>
+                  </div>
                   <span className="rounded-full bg-secondary px-2.5 py-0.5 font-mono text-sm font-medium text-secondary-foreground">
                     {columnCards.length}
                   </span>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {columnCards.length === 0 ? (
-                    <p className="py-12 text-center text-[16px] text-fg-muted">No requisitions in this stage</p>
+                    <p className="py-12 text-center text-sm text-fg-muted">Nothing here right now</p>
                   ) : (
                     columnCards.map((order) => <LabOrderCard key={order.id} order={order} />)
                   )}
@@ -406,20 +413,16 @@ function LabOrderCard({ order }: { order: WorklistDiagnosticOrder }) {
   return (
     <Link
       href={`/lab/requests/${order.id}`}
-      className="group mb-3 block rounded-xl border border-border/60 bg-surface-2 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"
+      className={cn(
+        "group block rounded-xl border border-border/60 bg-surface-2 p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        order.urgency === "urgent" && "border-l-4 border-l-warning-fill",
+      )}
     >
       <div className="flex items-start justify-between gap-2.5">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <GripVertical className="size-5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-          <p className="truncate font-heading text-lg font-bold text-foreground transition-colors group-hover:text-primary">
-            {order.patient_name}
-          </p>
-        </div>
-        {order.urgency === "urgent" ? (
-          <Chip variant="warning">Urgent</Chip>
-        ) : (
-          <Chip variant="neutral">Routine</Chip>
-        )}
+        <p className="min-w-0 truncate font-heading text-lg font-bold text-foreground transition-colors group-hover:text-primary">
+          {order.patient_name}
+        </p>
+        {order.urgency === "urgent" ? <Chip variant="warning">Urgent</Chip> : null}
       </div>
 
       <p className="mt-2.5 font-mono text-sm text-muted-foreground">
@@ -450,13 +453,22 @@ function LabOrderCard({ order }: { order: WorklistDiagnosticOrder }) {
             Verified
           </span>
         ) : order.status === "result_ready" ? (
-          <span className="font-medium text-warning-text">Awaiting verification</span>
+          <NextStep label="Verify results" />
         ) : order.status === "in_progress" ? (
-          <span className="font-medium text-clinical-text">{verifiedCount} verified</span>
+          <NextStep label={verifiedCount ? `Enter results · ${verifiedCount} verified` : "Enter results"} />
         ) : (
-          <span className="font-medium text-fg-secondary">Not started</span>
+          <NextStep label="Start tests" />
         )}
       </div>
     </Link>
+  );
+}
+
+function NextStep({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 font-semibold text-primary">
+      {label}
+      <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+    </span>
   );
 }

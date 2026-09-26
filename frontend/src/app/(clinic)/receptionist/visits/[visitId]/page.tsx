@@ -3,10 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 
-import { AssignVisitDoctorButton, canAssignVisitDoctor } from "@/components/clinic/assign-visit-doctor-button";
+import { AssignVisitDoctorButton, SendToDoctorButton, canAssignVisitDoctor } from "@/components/clinic/assign-visit-doctor-button";
 import { PageHeader } from "@/components/clinic/page-header";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -14,8 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
 import { getPatient, getVisit } from "@/lib/api/encounters";
 import type { BackendPatient } from "@/lib/api/patients";
-import { sendVisitToDoctor, type BackendVisit } from "@/lib/api/workflow";
-import { announceCoreDataChanged } from "@/lib/core-events";
+import type { BackendVisit } from "@/lib/api/workflow";
 import { ageFromDob } from "@/lib/format";
 
 export default function ReceptionistVisitPage() {
@@ -24,7 +22,6 @@ export default function ReceptionistVisitPage() {
   const [patient, setPatient] = useState<BackendPatient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -44,25 +41,6 @@ export default function ReceptionistVisitPage() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  async function sendToDoctor() {
-    if (!visit) return;
-    setSending(true);
-    try {
-      const response = await sendVisitToDoctor(visit.id);
-      setVisit(response.item);
-      announceCoreDataChanged();
-      toast.success("Sent to doctor queue", {
-        description: response.item.doctor_name
-          ? `${response.item.patient_name} is waiting for ${response.item.doctor_name}.`
-          : `${response.item.patient_name} is waiting for consultation.`,
-      });
-    } catch (caught) {
-      toast.error(caught instanceof ApiError ? caught.message : "Could not send the patient to the doctor.");
-    } finally {
-      setSending(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -148,10 +126,14 @@ export default function ReceptionistVisitPage() {
             onAssigned={setVisit}
           />
           {awaitingTriage ? (
-            <Button type="button" className="gap-1.5" disabled={sending} onClick={() => void sendToDoctor()}>
-              {sending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ArrowRight className="size-4" aria-hidden="true" />}
-              {sending ? "Sending…" : "Send to doctor"}
-            </Button>
+            <SendToDoctorButton
+              visitId={visit.id}
+              doctorId={visit.doctor_id}
+              doctorName={visit.doctor_name}
+              patientName={name}
+              className="min-h-10 gap-1.5"
+              onSent={setVisit}
+            />
           ) : null}
           {visit.status === "ready_for_billing" || visit.status === "billed" ? (
             <Button asChild variant="outline">

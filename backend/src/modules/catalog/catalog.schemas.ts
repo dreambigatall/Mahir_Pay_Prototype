@@ -7,6 +7,51 @@ const memberIds = z
   .max(30)
   .transform((ids) => [...new Set(ids)]);
 
+const resultChoiceSchema = z.object({
+  label: z.string().trim().min(1).max(60),
+  flag: z.enum(["normal", "abnormal", "critical"]),
+});
+
+const limit = z.number().min(-1_000_000).max(1_000_000).optional();
+
+/** How the lab records a result for a test (number with range, fixed choices, or free text). */
+export const resultSetupSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("number"),
+      unit: z.string().trim().max(30).optional(),
+      low: limit,
+      high: limit,
+      criticalLow: limit,
+      criticalHigh: limit,
+    })
+    .superRefine((v, c) => {
+      if (v.low !== undefined && v.high !== undefined && v.low > v.high) {
+        c.addIssue({ code: "custom", path: ["high"], message: "The upper normal limit must be above the lower one" });
+      }
+      if (v.criticalLow !== undefined && v.low !== undefined && v.criticalLow > v.low) {
+        c.addIssue({ code: "custom", path: ["criticalLow"], message: "Critical low must be below the normal range" });
+      }
+      if (v.criticalHigh !== undefined && v.high !== undefined && v.criticalHigh < v.high) {
+        c.addIssue({ code: "custom", path: ["criticalHigh"], message: "Critical high must be above the normal range" });
+      }
+    }),
+  z
+    .object({
+      type: z.literal("choice"),
+      choices: z.array(resultChoiceSchema).min(2).max(12),
+    })
+    .superRefine((v, c) => {
+      const labels = v.choices.map((choice) => choice.label.toLowerCase());
+      if (new Set(labels).size !== labels.length) {
+        c.addIssue({ code: "custom", path: ["choices"], message: "Each answer must be different" });
+      }
+    }),
+  z.object({ type: z.literal("text") }),
+]);
+
+export type ResultSetup = z.infer<typeof resultSetupSchema>;
+
 const standardCatalogCreateSchema = z
   .object({
     itemType: z.enum([
@@ -23,8 +68,16 @@ const standardCatalogCreateSchema = z
     trackInventory: z.boolean().default(false),
     openingQuantity: quantity.default(0),
     reorderLevel: quantity.default(0),
+    resultSetup: resultSetupSchema.optional(),
   })
   .superRefine((v, c) => {
+    if (v.resultSetup && v.itemType !== "lab_test" && v.itemType !== "radiology") {
+      c.addIssue({
+        code: "custom",
+        path: ["resultSetup"],
+        message: "Only lab tests and imaging can have a result setup",
+      });
+    }
     if (v.trackInventory && v.itemType !== "drug") {
       c.addIssue({
         code: "custom",
@@ -67,6 +120,7 @@ export const catalogUpdateSchema = z
     active: z.boolean().optional(),
     reorderLevel: quantity.optional(),
     memberItemIds: memberIds.optional(),
+    resultSetup: resultSetupSchema.nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {
     message: "At least one field is required",

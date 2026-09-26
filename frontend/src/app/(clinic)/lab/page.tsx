@@ -6,7 +6,7 @@ export default function LabBoardPage() {
     <div className="space-y-5">
       <PageHeader
         title="Lab board"
-        description="One card per requisition. Open a patient to enter results, save each test, and verify before returning them to the doctor."
+        description="Urgent requests first. Open a card to enter and verify results."
       />
       <LiveLabBoard />
     </div>

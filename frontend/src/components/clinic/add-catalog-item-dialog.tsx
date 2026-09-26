@@ -15,13 +15,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FormField, FormGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ResultSetupEditor } from "@/components/clinic/result-setup-editor";
 import { ApiError } from "@/lib/api/client";
 import { createCatalogItem, type CatalogItemType } from "@/lib/api/catalog";
 import { announceCoreDataChanged } from "@/lib/core-events";
 import { formatMoney } from "@/lib/format";
+import { draftFromSetup, setupFromDraft, suggestSetup, type SetupDraft } from "@/lib/lab-result-setup";
 import { cn } from "@/lib/utils";
 
 type AddableCatalogType = Exclude<CatalogItemType, "lab_panel" | "supply">;
@@ -29,46 +31,42 @@ type AddableCatalogType = Exclude<CatalogItemType, "lab_panel" | "supply">;
 const typeOptions: {
   type: AddableCatalogType;
   label: string;
-  description: string;
   icon: typeof FlaskConical;
   placeholder: string;
 }[] = [
   {
     type: "lab_test",
     label: "Lab test",
-    description: "Appears in doctor’s orders & lab workbench",
     icon: FlaskConical,
     placeholder: "e.g. Thyroid Panel (TSH, FT4)",
   },
   {
     type: "drug",
     label: "Medication",
-    description: "Available for doctor prescriptions & pharmacy",
     icon: Pill,
     placeholder: "e.g. Amoxicillin 500mg capsules",
   },
   {
     type: "consultation",
     label: "Consultation",
-    description: "Base consultation & clinical procedure fees",
     icon: Stethoscope,
     placeholder: "e.g. Specialist Follow-up review",
   },
   {
     type: "radiology",
     label: "Radiology",
-    description: "Imaging orders for doctor diagnostics",
     icon: FlaskConical,
     placeholder: "e.g. Chest X-ray (PA view)",
   },
   {
     type: "procedure",
     label: "Injection / vaccine",
-    description: "Daily course items: vaccines, IM/IV injections",
     icon: Syringe,
     placeholder: "e.g. Rabies vaccine (daily dose)",
   },
 ];
+
+const FORM_ID = "add-catalog-item-form";
 
 export function AddCatalogItemDialog({
   defaultType = "lab_test",
@@ -88,6 +86,10 @@ export function AddCatalogItemDialog({
   const [openingQuantity, setOpeningQuantity] = useState("");
   const [reorderLevel, setReorderLevel] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [setupDraft, setSetupDraft] = useState<SetupDraft>(() => draftFromSetup(null));
+  // Until the admin edits the result setup, it follows the suggestion for the typed name.
+  const [setupTouched, setSetupTouched] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
 
   const currentOption = typeOptions.find((opt) => opt.type === type) ?? typeOptions[0];
 
@@ -98,10 +100,19 @@ export function AddCatalogItemDialog({
     setTrackInventory(true);
     setOpeningQuantity("");
     setReorderLevel("");
+    setSetupDraft(draftFromSetup(null));
+    setSetupTouched(false);
+    setSetupError(null);
     setType(defaultType === "lab_panel" || defaultType === "supply" ? "lab_test" : defaultType);
   }
 
   const isDrug = type === "drug";
+  const isLabTest = type === "lab_test" || type === "radiology";
+
+  function changeName(next: string) {
+    setName(next);
+    if (!setupTouched) setSetupDraft(draftFromSetup(suggestSetup(next)));
+  }
   const tracksStock = isDrug && trackInventory;
 
   async function handleSubmit(event: React.FormEvent) {
@@ -125,6 +136,13 @@ export function AddCatalogItemDialog({
       }
     }
 
+    const { setup, error: setupProblem } = isLabTest ? setupFromDraft(setupDraft) : { setup: null, error: null };
+    if (setupProblem) {
+      setSetupError(setupProblem);
+      return;
+    }
+    setSetupError(null);
+
     setSubmitting(true);
     try {
       await createCatalogItem({
@@ -135,6 +153,7 @@ export function AddCatalogItemDialog({
         trackInventory: tracksStock,
         openingQuantity: tracksStock ? opening : 0,
         reorderLevel: tracksStock ? reorder : 0,
+        resultSetup: isLabTest && setup ? setup : undefined,
       });
       announceCoreDataChanged();
       onSaved?.();
@@ -166,174 +185,162 @@ export function AddCatalogItemDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="p-6 sm:max-w-[560px]">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[560px]">
+        <DialogHeader className="shrink-0 px-6 pt-6 pb-1">
           <DialogTitle>Add to service catalog</DialogTitle>
           <DialogDescription>
             Configure a billed service or medication. Clinic supplies are added from Admin → Inventory.
           </DialogDescription>
         </DialogHeader>
 
-        <form className="grid gap-5 pt-1" onSubmit={(event) => void handleSubmit(event)}>
-          <div className="grid gap-2">
-            <Label className="text-[13px] font-medium text-foreground">Select category *</Label>
-            <RadioGroup
-              value={type}
-              onValueChange={(value) => {
-                const next = value as AddableCatalogType;
-                setType(next);
-                setTrackInventory(next === "drug");
-              }}
-              className="grid gap-2.5 sm:grid-cols-2"
-            >
-              {typeOptions.map((opt) => {
-                const Icon = opt.icon;
-                const isSelected = type === opt.type;
-                return (
-                  <label
-                    key={opt.type}
-                    htmlFor={`type-${opt.type}`}
-                    className={cn(
-                      "flex cursor-pointer flex-col justify-between rounded-xl border p-3.5 transition-all",
-                      isSelected
-                        ? "border-foreground/40 bg-surface-1 font-semibold shadow-sm ring-1 ring-foreground/20"
-                        : "border-border bg-surface-2 text-fg-secondary hover:border-border-strong",
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <Icon
-                        className={cn("size-5", isSelected ? "text-foreground" : "text-fg-muted")}
-                        strokeWidth={1.75}
-                      />
+        <form id={FORM_ID} className="min-h-0 flex-1 overflow-y-auto px-6 py-4" onSubmit={(event) => void handleSubmit(event)}>
+          <div className="space-y-5">
+            <FormGroup eyebrow="Category">
+              <RadioGroup
+                value={type}
+                onValueChange={(value) => {
+                  const next = value as AddableCatalogType;
+                  setType(next);
+                  setTrackInventory(next === "drug");
+                }}
+                className="flex flex-wrap gap-2"
+              >
+                {typeOptions.map((opt) => {
+                  const Icon = opt.icon;
+                  const isSelected = type === opt.type;
+                  return (
+                    <label
+                      key={opt.type}
+                      htmlFor={`type-${opt.type}`}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
+                        isSelected
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-surface-2 text-fg-secondary hover:border-border-strong",
+                      )}
+                    >
+                      <Icon className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                      {opt.label}
                       <RadioGroupItem value={opt.type} id={`type-${opt.type}`} className="sr-only" />
-                    </div>
-                    <div className="mt-3">
-                      <p className="text-[13px] font-medium text-foreground">{opt.label}</p>
-                      <p className="mt-0.5 text-[11px] leading-tight text-fg-muted">{opt.description}</p>
-                    </div>
-                  </label>
-                );
-              })}
-            </RadioGroup>
-          </div>
+                    </label>
+                  );
+                })}
+              </RadioGroup>
+            </FormGroup>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="catalog-item-name" className="text-[13px] font-medium text-foreground">
-              Item or service name *
-            </Label>
-            <Input
-              id="catalog-item-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder={currentOption.placeholder}
-              required
-              autoFocus
-              className="h-10 bg-background text-[14px]"
-            />
-          </div>
-
-          <div className="grid gap-1.5">
-            <Label htmlFor="catalog-item-price" className="text-[13px] font-medium text-foreground">
-              Standard price (GHS) *
-            </Label>
-            <Input
-              id="catalog-item-price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={price}
-              onChange={(event) => setPrice(event.target.value)}
-              placeholder="0.00"
-              className="h-10 bg-background font-mono text-[14px] tabular-nums"
-              required
-            />
-          </div>
-
-          {isDrug ? (
-            <div className="space-y-4 rounded-xl border border-border/70 bg-surface-1 p-4">
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="track-inventory"
-                  checked={trackInventory}
-                  onCheckedChange={(checked) => setTrackInventory(checked === true)}
+            <FormGroup eyebrow="Basic details">
+              <FormField id="catalog-item-name" label="Item or service name" required>
+                <Input
+                  value={name}
+                  onChange={(event) => changeName(event.target.value)}
+                  placeholder={currentOption.placeholder}
+                  required
+                  autoFocus
+                  className="h-10 bg-background text-[14px]"
                 />
-                <div className="space-y-1">
-                  <Label htmlFor="track-inventory" className="text-[13px] font-medium text-foreground">
-                    Track medication inventory
-                  </Label>
-                  <p className="text-[11px] text-fg-muted">
-                    Enables stock counts on Admin → Inventory and batch receiving. Dispense after payment reduces stock.
-                  </p>
-                </div>
-              </div>
+              </FormField>
 
-              {trackInventory ? (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="grid gap-1.5 sm:col-span-1">
-                    <Label htmlFor="catalog-item-unit" className="text-[12px] font-medium text-fg-secondary">
-                      Unit
-                    </Label>
-                    <Input
-                      id="catalog-item-unit"
-                      value={unit}
-                      onChange={(event) => setUnit(event.target.value)}
-                      placeholder="e.g. tablet"
-                      className="h-9 bg-background text-[13px]"
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="catalog-opening-qty" className="text-[12px] font-medium text-fg-secondary">
-                      Opening stock
-                    </Label>
-                    <Input
-                      id="catalog-opening-qty"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={openingQuantity}
-                      onChange={(event) => setOpeningQuantity(event.target.value)}
-                      placeholder="0"
-                      className="h-9 bg-background font-mono text-[13px] tabular-nums"
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="catalog-reorder-level" className="text-[12px] font-medium text-fg-secondary">
-                      Reorder level
-                    </Label>
-                    <Input
-                      id="catalog-reorder-level"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={reorderLevel}
-                      onChange={(event) => setReorderLevel(event.target.value)}
-                      placeholder="10"
-                      className="h-9 bg-background font-mono text-[13px] tabular-nums"
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+              <FormField id="catalog-item-price" label="Standard price (GHS)" required>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={price}
+                  onChange={(event) => setPrice(event.target.value)}
+                  placeholder="0.00"
+                  className="h-10 bg-background font-mono text-[14px] tabular-nums"
+                  required
+                />
+              </FormField>
+            </FormGroup>
 
-          <DialogFooter className="pt-3">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={submitting}
-              onClick={() => {
-                setOpen(false);
-                reset();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting} className="gap-2">
-              {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
-              {submitting ? "Saving…" : "Save to catalog"}
-            </Button>
-          </DialogFooter>
+            {isLabTest ? (
+              <FormGroup eyebrow="Lab result" hint="How the lab records this test's result">
+                <ResultSetupEditor
+                  testName={name}
+                  draft={setupDraft}
+                  error={setupError}
+                  onChange={(next) => {
+                    setSetupDraft(next);
+                    setSetupTouched(true);
+                    setSetupError(null);
+                  }}
+                />
+              </FormGroup>
+            ) : null}
+
+            {isDrug ? (
+              <FormGroup eyebrow="Inventory tracking" hint="Only medications can track stock counts">
+                <label htmlFor="track-inventory" className="flex cursor-pointer items-start gap-3">
+                  <Checkbox
+                    id="track-inventory"
+                    checked={trackInventory}
+                    onCheckedChange={(checked) => setTrackInventory(checked === true)}
+                  />
+                  <span className="grid gap-1">
+                    <span className="text-[13px] font-medium text-foreground">Track medication inventory</span>
+                    <span className="text-[12px] text-fg-muted">
+                      Enables stock counts on Admin → Inventory and batch receiving. Dispense after payment reduces stock.
+                    </span>
+                  </span>
+                </label>
+
+                {trackInventory ? (
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <FormField id="catalog-item-unit" label="Unit">
+                      <Input
+                        value={unit}
+                        onChange={(event) => setUnit(event.target.value)}
+                        placeholder="e.g. tablet"
+                        className="h-9 bg-background text-[13px]"
+                      />
+                    </FormField>
+                    <FormField id="catalog-opening-qty" label="Opening stock">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={openingQuantity}
+                        onChange={(event) => setOpeningQuantity(event.target.value)}
+                        placeholder="0"
+                        className="h-9 bg-background font-mono text-[13px] tabular-nums"
+                      />
+                    </FormField>
+                    <FormField id="catalog-reorder-level" label="Reorder level">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={reorderLevel}
+                        onChange={(event) => setReorderLevel(event.target.value)}
+                        placeholder="10"
+                        className="h-9 bg-background font-mono text-[13px] tabular-nums"
+                      />
+                    </FormField>
+                  </div>
+                ) : null}
+              </FormGroup>
+            ) : null}
+          </div>
         </form>
+
+        <DialogFooter className="shrink-0 border-t border-border/70 px-6 py-4">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={submitting}
+            onClick={() => {
+              setOpen(false);
+              reset();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form={FORM_ID} disabled={submitting} className="gap-2">
+            {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+            {submitting ? "Saving…" : "Save to catalog"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

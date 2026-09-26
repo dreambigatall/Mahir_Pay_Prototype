@@ -27,6 +27,8 @@ export type CatalogItem = {
   description: string | null;
   unit: string | null;
   price: string;
+  /** How the lab records this test's result; parse with `parseResultSetup`. */
+  result_setup?: unknown;
   track_inventory: boolean;
   supply_group_id: string | null;
   supply_group_name: string | null;
@@ -65,6 +67,8 @@ export type DiagnosticItem = {
   item_name: string;
   item_type: "lab_test" | "radiology";
   status: string;
+  /** The test's current result setup from the catalog; parse with `parseResultSetup`. */
+  result_setup?: unknown;
   result: DiagnosticResult | null;
 };
 
@@ -102,8 +106,8 @@ export type Prescription = {
   items: PrescriptionItem[];
 };
 
-export function getTriage(visitId: string) {
-  return apiRequest<{ item: TriageObservation }>(`/clinical/visits/${visitId}/triage`);
+export function getTriage(visitId: string, signal?: AbortSignal) {
+  return apiRequest<{ item: TriageObservation }>(`/clinical/visits/${visitId}/triage`, { signal });
 }
 
 export function getVisitDiagnostics(visitId: string) {

@@ -5,11 +5,13 @@ import { Activity, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FormGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api/client";
 import type { TriageObservation } from "@/lib/api/clinical";
 import { saveVisitVitals } from "@/lib/api/workflow";
+import { cn } from "@/lib/utils";
 
 export type VitalsData = {
   bp: string;
@@ -45,6 +47,12 @@ export function vitalsToPayload(vitals: VitalsData) {
   if (vitals.weight.trim()) payload.weightKg = Number(vitals.weight);
   if (vitals.height.trim()) payload.heightCm = Number(vitals.height);
   return payload;
+}
+
+function splitBp(bp: string): [string, string] {
+  const match = bp.match(/^(\d*)\s*\/\s*(\d*)$/);
+  if (!match) return ["", ""];
+  return [match[1] ?? "", match[2] ?? ""];
 }
 
 export function DoctorVitalsCard({
@@ -88,28 +96,45 @@ export function DoctorVitalsCard({
     return null;
   }, [vitals.weight, vitals.height]);
 
-  const alerts = useMemo(() => {
-    const list: string[] = [];
+  const [bpSystolic, bpDiastolic] = useMemo(() => splitBp(vitals.bp), [vitals.bp]);
+
+  const flags = useMemo(() => {
     const tempNum = parseFloat(vitals.temp);
-    if (tempNum >= 38.0) list.push(`Fever (${vitals.temp}°C)`);
-    else if (tempNum < 35.5 && tempNum > 0) list.push(`Hypothermia (${vitals.temp}°C)`);
+    const feverish = tempNum >= 38.0;
+    const hypothermic = tempNum < 35.5 && tempNum > 0;
 
     const spo2Num = parseFloat(vitals.spo2);
-    if (spo2Num <= 94 && spo2Num > 0) list.push(`Low SpO2 (${vitals.spo2}%)`);
+    const lowSpo2 = spo2Num <= 94 && spo2Num > 0;
 
-    const bpMatch = vitals.bp.match(/^(\d+)\/(\d+)$/);
-    if (bpMatch) {
-      const sys = parseInt(bpMatch[1], 10);
-      const dia = parseInt(bpMatch[2], 10);
-      if (sys >= 140 || dia >= 90) list.push(`Elevated BP (${vitals.bp})`);
-      else if (sys < 90 || dia < 60) list.push(`Low BP (${vitals.bp})`);
+    let bpAbnormal = false;
+    if (bpSystolic && bpDiastolic) {
+      const sys = parseInt(bpSystolic, 10);
+      const dia = parseInt(bpDiastolic, 10);
+      bpAbnormal = sys >= 140 || dia >= 90 || sys < 90 || dia < 60;
     }
 
-    return list;
-  }, [vitals.temp, vitals.spo2, vitals.bp]);
+    const alerts: string[] = [];
+    if (feverish) alerts.push(`Fever (${vitals.temp}°C)`);
+    else if (hypothermic) alerts.push(`Hypothermia (${vitals.temp}°C)`);
+    if (lowSpo2) alerts.push(`Low SpO2 (${vitals.spo2}%)`);
+    if (bpAbnormal) alerts.push(`Abnormal BP (${bpSystolic}/${bpDiastolic})`);
+
+    return {
+      temp: feverish || hypothermic,
+      spo2: lowSpo2,
+      bp: bpAbnormal,
+      alerts,
+    };
+  }, [vitals.temp, vitals.spo2, bpSystolic, bpDiastolic]);
 
   function updateField(key: keyof VitalsData, val: string) {
     setVitals((prev) => ({ ...prev, [key]: val }));
+  }
+
+  function updateBp(part: "systolic" | "diastolic", value: string) {
+    const digits = value.replace(/\D/g, "");
+    const next = part === "systolic" ? `${digits}/${bpDiastolic}` : `${bpSystolic}/${digits}`;
+    updateField("bp", next);
   }
 
   async function save() {
@@ -140,9 +165,9 @@ export function DoctorVitalsCard({
           <Activity className="size-5 text-clinical-fill" aria-hidden="true" />
           <h2 className="text-base font-semibold tracking-tight">Triage & vital signs</h2>
         </div>
-        {alerts.length > 0 ? (
+        {flags.alerts.length > 0 ? (
           <div className="flex flex-wrap items-center gap-1.5">
-            {alerts.map((alert) => (
+            {flags.alerts.map((alert) => (
               <span key={alert} className="inline-flex items-center gap-1 rounded-full bg-danger-bg px-2.5 py-0.5 text-[11px] font-medium text-danger-text">
                 <AlertCircle className="size-3" aria-hidden="true" />
                 {alert}
@@ -152,27 +177,42 @@ export function DoctorVitalsCard({
         ) : null}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <VitalField label="Blood pressure" id="vitals-bp" unit="mmHg" placeholder="120/80" value={vitals.bp} readOnly={readOnly} onChange={(v) => updateField("bp", v)} />
-        <VitalField label="Temperature" id="vitals-temp" unit="°C" placeholder="36.8" value={vitals.temp} readOnly={readOnly} onChange={(v) => updateField("temp", v)} />
-        <VitalField label="Pulse rate" id="vitals-pulse" unit="bpm" placeholder="72" value={vitals.pulse} readOnly={readOnly} onChange={(v) => updateField("pulse", v)} />
-        <VitalField label="SpO2" id="vitals-spo2" unit="%" placeholder="98" value={vitals.spo2} readOnly={readOnly} onChange={(v) => updateField("spo2", v)} />
-        <VitalField label="Weight" id="vitals-weight" unit="kg" placeholder="68" value={vitals.weight} readOnly={readOnly} onChange={(v) => updateField("weight", v)} />
-        <VitalField label="Height" id="vitals-height" unit="cm" placeholder="170" value={vitals.height} readOnly={readOnly} onChange={(v) => updateField("height", v)} />
+      <div className="space-y-5">
+        <FormGroup eyebrow="Cardiopulmonary">
+          <div className="grid grid-cols-2 gap-3">
+            <BloodPressureField
+              systolic={bpSystolic}
+              diastolic={bpDiastolic}
+              readOnly={readOnly}
+              abnormal={flags.bp}
+              onSystolicChange={(v) => updateBp("systolic", v)}
+              onDiastolicChange={(v) => updateBp("diastolic", v)}
+            />
+            <VitalField label="Temperature" id="vitals-temp" unit="°C" placeholder="36.8" value={vitals.temp} readOnly={readOnly} abnormal={flags.temp} onChange={(v) => updateField("temp", v)} />
+            <VitalField label="Pulse rate" id="vitals-pulse" unit="bpm" placeholder="72" value={vitals.pulse} readOnly={readOnly} onChange={(v) => updateField("pulse", v)} />
+            <VitalField label="SpO2" id="vitals-spo2" unit="%" placeholder="98" value={vitals.spo2} readOnly={readOnly} abnormal={flags.spo2} onChange={(v) => updateField("spo2", v)} />
+          </div>
+        </FormGroup>
+
+        <FormGroup eyebrow="Body">
+          <div className="grid grid-cols-2 gap-3">
+            <VitalField label="Weight" id="vitals-weight" unit="kg" placeholder="68" value={vitals.weight} readOnly={readOnly} onChange={(v) => updateField("weight", v)} />
+            <VitalField label="Height" id="vitals-height" unit="cm" placeholder="170" value={vitals.height} readOnly={readOnly} onChange={(v) => updateField("height", v)} />
+          </div>
+          {bmi ? (
+            <div className="flex items-center gap-3 text-[13px] text-fg-secondary">
+              <span>Calculated BMI: <strong className="font-mono text-foreground">{bmi} kg/m²</strong></span>
+              <span className="text-fg-muted">·</span>
+              <span>
+                {parseFloat(bmi) < 18.5 ? "Underweight" : parseFloat(bmi) <= 24.9 ? "Normal weight" : parseFloat(bmi) <= 29.9 ? "Overweight" : "Obese"}
+              </span>
+            </div>
+          ) : null}
+        </FormGroup>
       </div>
 
-      {bmi ? (
-        <div className="mt-4 flex items-center gap-3 text-[13px] text-fg-secondary">
-          <span>Calculated BMI: <strong className="font-mono text-foreground">{bmi} kg/m²</strong></span>
-          <span className="text-fg-muted">·</span>
-          <span>
-            {parseFloat(bmi) < 18.5 ? "Underweight" : parseFloat(bmi) <= 24.9 ? "Normal weight" : parseFloat(bmi) <= 29.9 ? "Overweight" : "Obese"}
-          </span>
-        </div>
-      ) : null}
-
       {triage?.recorded_by_name ? (
-        <p className="mt-3 text-xs text-fg-muted">Last recorded by {triage.recorded_by_name}</p>
+        <p className="mt-4 text-xs text-fg-muted">Last recorded by {triage.recorded_by_name}</p>
       ) : null}
 
       {error ? <p role="alert" className="mt-3 text-sm text-danger-text">{error}</p> : null}
@@ -196,6 +236,7 @@ function VitalField({
   placeholder,
   value,
   readOnly,
+  abnormal,
   onChange,
 }: {
   label: string;
@@ -204,12 +245,16 @@ function VitalField({
   placeholder: string;
   value: string;
   readOnly: boolean;
+  abnormal?: boolean;
   onChange: (val: string) => void;
 }) {
   return (
     <div className="grid gap-1">
       <div className="flex items-center justify-between text-[12px]">
-        <Label htmlFor={id} className="font-medium text-foreground">{label}</Label>
+        <Label htmlFor={id} className="font-medium text-foreground">
+          {label}
+          {abnormal ? <AlertCircle className="size-3 text-danger-text" aria-hidden="true" /> : null}
+        </Label>
         <span className="font-mono text-[11px] text-fg-muted">{unit}</span>
       </div>
       <Input
@@ -218,8 +263,62 @@ function VitalField({
         readOnly={readOnly}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 bg-background font-mono text-[13px] tabular-nums"
+        aria-invalid={abnormal ? true : undefined}
+        className={cn("h-9 bg-background font-mono text-[13px] tabular-nums", abnormal && "border-danger-fill/60 ring-1 ring-danger-bg")}
       />
+    </div>
+  );
+}
+
+function BloodPressureField({
+  systolic,
+  diastolic,
+  readOnly,
+  abnormal,
+  onSystolicChange,
+  onDiastolicChange,
+}: {
+  systolic: string;
+  diastolic: string;
+  readOnly: boolean;
+  abnormal?: boolean;
+  onSystolicChange: (val: string) => void;
+  onDiastolicChange: (val: string) => void;
+}) {
+  return (
+    <div className="grid gap-1">
+      <div className="flex items-center justify-between text-[12px]">
+        <Label htmlFor="vitals-bp-systolic" className="font-medium text-foreground">
+          Blood pressure
+          {abnormal ? <AlertCircle className="size-3 text-danger-text" aria-hidden="true" /> : null}
+        </Label>
+        <span className="font-mono text-[11px] text-fg-muted">mmHg</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <Input
+          id="vitals-bp-systolic"
+          inputMode="numeric"
+          value={systolic}
+          readOnly={readOnly}
+          onChange={(e) => onSystolicChange(e.target.value)}
+          placeholder="120"
+          aria-label="Systolic"
+          aria-invalid={abnormal ? true : undefined}
+          className={cn("h-9 bg-background text-center font-mono text-[13px] tabular-nums", abnormal && "border-danger-fill/60 ring-1 ring-danger-bg")}
+        />
+        <span className="shrink-0 text-fg-muted">/</span>
+        <Input
+          id="vitals-bp-diastolic"
+          inputMode="numeric"
+          value={diastolic}
+          readOnly={readOnly}
+          onChange={(e) => onDiastolicChange(e.target.value)}
+          placeholder="80"
+          aria-label="Diastolic"
+          aria-invalid={abnormal ? true : undefined}
+          className={cn("h-9 bg-background text-center font-mono text-[13px] tabular-nums", abnormal && "border-danger-fill/60 ring-1 ring-danger-bg")}
+        />
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ export default function ReceptionistQueuePage() {
     <div className="space-y-5">
       <PageHeader
         title="Today’s queue"
-        description="Live patient flow across triage, consultation, diagnostics, pharmacy, billing, and paid today."
+        description="Where every patient is right now. Urgent and longest-waiting patients are at the top of each column."
         action={<LiveRegisterPatientDialog />}
       />
       <LiveQueueBoard />
